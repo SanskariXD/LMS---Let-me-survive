@@ -305,7 +305,7 @@ export function ProfileView({
             <div className="relative flex-shrink-0">
               <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden border-2 border-indigo-400/40 shadow-xl bg-slate-800 flex items-center justify-center group">
                 <img
-                  src="/lms-logo.jpg"
+                  src="/cat-study.jpg"
                   alt="LMS² Mascot"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
