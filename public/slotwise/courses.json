@@ -1,0 +1,2362 @@
+[
+  {
+    "id": "CSE2033|Cloud Computing for IoT",
+    "code": "CSE2033",
+    "name": "Cloud Computing for IoT",
+    "category": "IOT basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "2",
+        "row": 2,
+        "theory": "B1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Harinadh",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE2001|IoT Architecture and Protocols",
+    "code": "ECE2001",
+    "name": "IoT Architecture and Protocols",
+    "category": "IOT basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "3",
+        "row": 3,
+        "theory": "A1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Judeson",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "4",
+        "row": 4,
+        "theory": "A2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Satya",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE2038|Cloud Computing Platforms",
+    "code": "CSE2038",
+    "name": "Cloud Computing Platforms",
+    "category": "cloud computing basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "5",
+        "row": 5,
+        "theory": "G2",
+        "lab": "L5+L6",
+        "pairs": [
+          "L5+L6"
+        ],
+        "theoryFaculty": "Dr.Vikram",
+        "labFaculty": "Dr.Vikram",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3018|MEAN/ MERN Stack",
+    "code": "CSE3018",
+    "name": "MEAN/ MERN Stack",
+    "category": "Full stack Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "6",
+        "row": 6,
+        "theory": "G1",
+        "lab": "L13+L14",
+        "pairs": [
+          "L13+L14"
+        ],
+        "theoryFaculty": "Dr.Senthil",
+        "labFaculty": "Dr.Senthil",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE2022|Front End Engineering",
+    "code": "CSE2022",
+    "name": "Front End Engineering",
+    "category": "Full stack Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "7",
+        "row": 7,
+        "theory": "G1",
+        "lab": "L1+L2",
+        "pairs": [
+          "L1+L2"
+        ],
+        "theoryFaculty": "Dr.Shobha K",
+        "labFaculty": "Dr.Shobha K",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "8",
+        "row": 8,
+        "theory": "F2",
+        "lab": "L25+L26",
+        "pairs": [
+          "L25+L26"
+        ],
+        "theoryFaculty": "Mr.Pranav",
+        "labFaculty": "Mr.Pranav",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE2040|Continuous Integration and Continuous Deployment",
+    "code": "CSE2040",
+    "name": "Continuous Integration and Continuous Deployment",
+    "category": "DevOps Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "9",
+        "row": 9,
+        "theory": "F1",
+        "lab": "L19+L20",
+        "pairs": [
+          "L19+L20"
+        ],
+        "theoryFaculty": "Mr.Sreetharan",
+        "labFaculty": "Mr.Sreetharan",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE2035|DevOps",
+    "code": "CSE2035",
+    "name": "DevOps",
+    "category": "DevOps Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "10",
+        "row": 10,
+        "theory": "B1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Vinob C",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "11",
+        "row": 11,
+        "theory": "A2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Vinob C",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE2029|Business Analytics Fundamentals",
+    "code": "CSE2029",
+    "name": "Business Analytics Fundamentals",
+    "category": "Data Analytics Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "12",
+        "row": 12,
+        "theory": "B1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Nirmal Kumar",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE1012|R Programming for Data Analytics",
+    "code": "CSE1012",
+    "name": "R Programming for Data Analytics",
+    "category": "Data Analytics Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "13",
+        "row": 13,
+        "theory": "G1",
+        "lab": "L3+L4",
+        "pairs": [
+          "L3+L4"
+        ],
+        "theoryFaculty": "Dr Nashreen",
+        "labFaculty": "Dr Nashreen",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "14",
+        "row": 14,
+        "theory": "D1",
+        "lab": "L27+L28",
+        "pairs": [
+          "L27+L28"
+        ],
+        "theoryFaculty": "Dr.Vinob C",
+        "labFaculty": "Dr.Vinob C",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "15",
+        "row": 15,
+        "theory": "D2",
+        "lab": "L11+L12",
+        "pairs": [
+          "L11+L12"
+        ],
+        "theoryFaculty": "Dr Nashreen",
+        "labFaculty": "Dr Nashreen",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE3023|Mechatronic System Design",
+    "code": "ECE3023",
+    "name": "Mechatronic System Design",
+    "category": "Robotics Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "16",
+        "row": 16,
+        "theory": "F1",
+        "lab": "L15+L16",
+        "pairs": [
+          "L15+L16"
+        ],
+        "theoryFaculty": "Dr.Manjunath",
+        "labFaculty": "Dr.Manjunath",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3031|Autonomous Mobile Robots",
+    "code": "CSE3031",
+    "name": "Autonomous Mobile Robots",
+    "category": "Robotics Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "17",
+        "row": 17,
+        "theory": "D1",
+        "lab": "L35+L36",
+        "pairs": [
+          "L35+L36"
+        ],
+        "theoryFaculty": "Dr.Manjunath",
+        "labFaculty": "Dr.Manjunath",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE3036|Robotic System Mechanics",
+    "code": "ECE3036",
+    "name": "Robotic System Mechanics",
+    "category": "Robotics Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "18",
+        "row": 18,
+        "theory": "F2",
+        "lab": "L33+L34",
+        "pairs": [
+          "L33+L34"
+        ],
+        "theoryFaculty": "Dr.Prabin Kumar Jha",
+        "labFaculty": "Dr.Prabin Kumar Jha",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "This course code is shared with a different title in the source. Check your registration choice."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ECE3026|Building Robots",
+    "code": "ECE3026",
+    "name": "Building Robots",
+    "category": "Robotics Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "19",
+        "row": 19,
+        "theory": "",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Prabin Kumar Jha",
+        "labFaculty": "",
+        "venue": "",
+        "project": true,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3023|Fundamentals of Cloud Security",
+    "code": "CSE3023",
+    "name": "Fundamentals of Cloud Security",
+    "category": "Cyber Security Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "20",
+        "row": 20,
+        "theory": "B1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Akilarasu",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "21",
+        "row": 21,
+        "theory": "C2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Akilarasu",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3022|Intrusion Detection and Prevention System",
+    "code": "CSE3022",
+    "name": "Intrusion Detection and Prevention System",
+    "category": "Cyber Security Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "22",
+        "row": 22,
+        "theory": "D1",
+        "lab": "L11+L12",
+        "pairs": [
+          "L11+L12"
+        ],
+        "theoryFaculty": "Dr.Raman",
+        "labFaculty": "Dr.Raman",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "23",
+        "row": 23,
+        "theory": "G1",
+        "lab": "L21+L22",
+        "pairs": [
+          "L21+L22"
+        ],
+        "theoryFaculty": "Dr.Raman",
+        "labFaculty": "Dr.Raman",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3025|Networking and System Administration",
+    "code": "CSE3025",
+    "name": "Networking and System Administration",
+    "category": "Cyber Security Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "24",
+        "row": 24,
+        "theory": "E2",
+        "lab": "L31+L32",
+        "pairs": [
+          "L31+L32"
+        ],
+        "theoryFaculty": "Dr.Raman",
+        "labFaculty": "Dr.Raman",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "25",
+        "row": 25,
+        "theory": "D2",
+        "lab": "L35+L36",
+        "pairs": [
+          "L35+L36"
+        ],
+        "theoryFaculty": "Dr.Raman",
+        "labFaculty": "Dr.Raman",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3013|Deep Neural Networks",
+    "code": "CSE3013",
+    "name": "Deep Neural Networks",
+    "category": "AI & ML Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "26",
+        "row": 26,
+        "theory": "F2",
+        "lab": "L19+L20",
+        "pairs": [
+          "L19+L20"
+        ],
+        "theoryFaculty": "Dr. Neha",
+        "labFaculty": "Dr. Neha",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "27",
+        "row": 27,
+        "theory": "G1",
+        "lab": "L29+L30",
+        "pairs": [
+          "L29+L30"
+        ],
+        "theoryFaculty": "Dr. Neha",
+        "labFaculty": "Dr. Neha",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3010|AI & ML Applications",
+    "code": "CSE3010",
+    "name": "AI & ML Applications",
+    "category": "AI & ML Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "28",
+        "row": 28,
+        "theory": "E2",
+        "lab": "L3+L4",
+        "pairs": [
+          "L3+L4"
+        ],
+        "theoryFaculty": "Dr. Ruhin Kouser",
+        "labFaculty": "Dr. Ruhin Kouser",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3011|Machine Learning Techniques",
+    "code": "CSE3011",
+    "name": "Machine Learning Techniques",
+    "category": "AI & ML Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "29",
+        "row": 29,
+        "theory": "F1",
+        "lab": "L37+L38",
+        "pairs": [
+          "L37+L38"
+        ],
+        "theoryFaculty": "Dr.Priyanka gupta",
+        "labFaculty": "Dr.Priyanka gupta",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "30",
+        "row": 30,
+        "theory": "G2",
+        "lab": "L37+L38",
+        "pairs": [
+          "L37+L38"
+        ],
+        "theoryFaculty": "Ms.Sonali",
+        "labFaculty": "Ms.Sonali",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "31",
+        "row": 31,
+        "theory": "E1",
+        "lab": "L23+L24",
+        "pairs": [
+          "L23+L24"
+        ],
+        "theoryFaculty": "Ms.Sonali",
+        "labFaculty": "Ms.Sonali",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3003|Cryptography and Network Security",
+    "code": "CSE3003",
+    "name": "Cryptography and Network Security",
+    "category": "PC",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "32",
+        "row": 32,
+        "theory": "A1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Mr.Pranav",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "33",
+        "row": 33,
+        "theory": "B1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Mr.Pranav",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "34",
+        "row": 34,
+        "theory": "C2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Mr.Pranav",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "35",
+        "row": 35,
+        "theory": "A2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Mr.Pranav",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "36",
+        "row": 36,
+        "theory": "C1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Akilarasu",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "37",
+        "row": 37,
+        "theory": "A2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Akilarasu",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "38",
+        "row": 38,
+        "theory": "A1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Vikram",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "39",
+        "row": 39,
+        "theory": "C2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Vikram",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE2009|Data Analytics and Visualization",
+    "code": "CSE2009",
+    "name": "Data Analytics and Visualization",
+    "category": "PC",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "40",
+        "row": 40,
+        "theory": "E1",
+        "lab": "L25+L26",
+        "pairs": [
+          "L25+L26"
+        ],
+        "theoryFaculty": "Dr.Jagadevi",
+        "labFaculty": "Dr.Jagadevi",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "41",
+        "row": 41,
+        "theory": "F1",
+        "lab": "L35+L36",
+        "pairs": [
+          "L35+L36"
+        ],
+        "theoryFaculty": "Dr.Shobha K",
+        "labFaculty": "Dr.Shobha K",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "42",
+        "row": 42,
+        "theory": "F2",
+        "lab": "L39+L40",
+        "pairs": [
+          "L39+L40"
+        ],
+        "theoryFaculty": "Dr.Jagadevi",
+        "labFaculty": "Dr.Jagadevi",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "43",
+        "row": 43,
+        "theory": "D1",
+        "lab": "L33+L34",
+        "pairs": [
+          "L33+L34"
+        ],
+        "theoryFaculty": "Dr.Shobha K",
+        "labFaculty": "Dr.Shobha K",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "44",
+        "row": 44,
+        "theory": "E2",
+        "lab": "L11+L12",
+        "pairs": [
+          "L11+L12"
+        ],
+        "theoryFaculty": "Ms.Sudha",
+        "labFaculty": "Ms.Sudha",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "45",
+        "row": 45,
+        "theory": "E1",
+        "lab": "L15+L16",
+        "pairs": [
+          "L15+L16"
+        ],
+        "theoryFaculty": "Dr.Nirmal Kumar",
+        "labFaculty": "Dr.Nirmal Kumar",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "46",
+        "row": 46,
+        "theory": "F2",
+        "lab": "L29+L30",
+        "pairs": [
+          "L29+L30"
+        ],
+        "theoryFaculty": "Dr.Nirmal Kumar",
+        "labFaculty": "Dr.Nirmal Kumar",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "47",
+        "row": 47,
+        "theory": "E2",
+        "lab": "L35+L36",
+        "pairs": [
+          "L35+L36"
+        ],
+        "theoryFaculty": "Ms.Manisha",
+        "labFaculty": "Ms.Manisha",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3016|Object Oriented Modelling and Design using UML",
+    "code": "CSE3016",
+    "name": "Object Oriented Modelling and Design using UML",
+    "category": "CE",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "48",
+        "row": 48,
+        "theory": "A2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Mr.Sreetharan",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "49",
+        "row": 49,
+        "theory": "C1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Mrs. Sudha",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "50",
+        "row": 50,
+        "theory": "A2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Avinash",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "51",
+        "row": 51,
+        "theory": "C2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Avinash",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "52",
+        "row": 52,
+        "theory": "B1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Avinash",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE1010|Digital Design, Microprocessors and Microcontrollers",
+    "code": "ECE1010",
+    "name": "Digital Design, Microprocessors and Microcontrollers",
+    "category": "PC",
+    "credits": 4.0,
+    "options": [
+      {
+        "id": "53",
+        "row": 53,
+        "theory": "B2",
+        "lab": "L11+L12,L21+L22",
+        "pairs": [
+          "L11+L12",
+          "L21+L22"
+        ],
+        "theoryFaculty": "Dr.Vijayshree",
+        "labFaculty": "Dr.Vijayshree",
+        "venue": "",
+        "project": false,
+        "warnings": [],
+        "labsRequiredTogether": true,
+        "correction": "Lab schedule corrected by you: both L11+L12 and L21+L22 are required."
+      }
+    ]
+  },
+  {
+    "id": "CSE2008|Cloud Computing",
+    "code": "CSE2008",
+    "name": "Cloud Computing",
+    "category": "PC",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "54",
+        "row": 54,
+        "theory": "E1",
+        "lab": "L23+L24",
+        "pairs": [
+          "L23+L24"
+        ],
+        "theoryFaculty": "Dr.Harish Kumar",
+        "labFaculty": "Dr.Harish Kumar",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "55",
+        "row": 55,
+        "theory": "F2",
+        "lab": "L27+L28",
+        "pairs": [
+          "L27+L28"
+        ],
+        "theoryFaculty": "Dr.Shobha M.S",
+        "labFaculty": "Dr.Shobha M.S",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "56",
+        "row": 56,
+        "theory": "D1",
+        "lab": "L33+L34",
+        "pairs": [
+          "L33+L34"
+        ],
+        "theoryFaculty": "Dr.Ganesh",
+        "labFaculty": "Dr.Ganesh",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "57",
+        "row": 57,
+        "theory": "G2",
+        "lab": "L29+L30",
+        "pairs": [
+          "L29+L30"
+        ],
+        "theoryFaculty": "Dr.Ganesh",
+        "labFaculty": "Dr.Ganesh",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "58",
+        "row": 58,
+        "theory": "G2",
+        "lab": "L19+L20",
+        "pairs": [
+          "L19+L20"
+        ],
+        "theoryFaculty": "Dr. Harinadh",
+        "labFaculty": "Dr. Harinadh",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "59",
+        "row": 59,
+        "theory": "E1",
+        "lab": "L15+L16",
+        "pairs": [
+          "L15+L16"
+        ],
+        "theoryFaculty": "Dr. Harinadh",
+        "labFaculty": "Dr. Harinadh",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "60",
+        "row": 60,
+        "theory": "D1",
+        "lab": "L11+L12",
+        "pairs": [
+          "L11+L12"
+        ],
+        "theoryFaculty": "Dr.Mahira Kiramani",
+        "labFaculty": "Dr.Mahira Kiramani",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE2016|Software Quality Assurance",
+    "code": "CSE2016",
+    "name": "Software Quality Assurance",
+    "category": "CE",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "61",
+        "row": 61,
+        "theory": "F1",
+        "lab": "L5+L6",
+        "pairs": [
+          "L5+L6"
+        ],
+        "theoryFaculty": "Dr. Parthiban Ramamurthy",
+        "labFaculty": "Dr. Parthiban Ramamurthy",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE2007|Wireless and Mobile Communications",
+    "code": "ECE2007",
+    "name": "Wireless and Mobile Communications",
+    "category": "PC-CE",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "63",
+        "row": 63,
+        "theory": "E2",
+        "lab": "L7+L8",
+        "pairs": [
+          "L7+L8"
+        ],
+        "theoryFaculty": "Dr.Anughna",
+        "labFaculty": "Dr.Levy",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE2008|Data Communications and Networks",
+    "code": "ECE2008",
+    "name": "Data Communications and Networks",
+    "category": "CE",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "64",
+        "row": 64,
+        "theory": "E1",
+        "lab": "L31+L32",
+        "pairs": [
+          "L31+L32"
+        ],
+        "theoryFaculty": "Dr.Ajay",
+        "labFaculty": "Dr.Ajay",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE2033|Embedded System Design",
+    "code": "ECE2033",
+    "name": "Embedded System Design",
+    "category": "CE/PC",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "65",
+        "row": 65,
+        "theory": "D1",
+        "lab": "L29+L30",
+        "pairs": [
+          "L29+L30"
+        ],
+        "theoryFaculty": "Dr.Judeson",
+        "labFaculty": "Dr.Judeson",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE2027|Image and Video Processing",
+    "code": "ECE2027",
+    "name": "Image and Video Processing",
+    "category": "SE",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "66",
+        "row": 66,
+        "theory": "D2",
+        "lab": "L13+L14",
+        "pairs": [
+          "L13+L14"
+        ],
+        "theoryFaculty": "Mrs.Sreevidya",
+        "labFaculty": "Mrs.Sreevidya",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE2029|Satellite Communication",
+    "code": "ECE2029",
+    "name": "Satellite Communication",
+    "category": "SE",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "67",
+        "row": 67,
+        "theory": "G1",
+        "lab": "L3+L4",
+        "pairs": [
+          "L3+L4"
+        ],
+        "theoryFaculty": "Dr.Levy",
+        "labFaculty": "Dr.Levy",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE3002|VLSI System Design",
+    "code": "ECE3002",
+    "name": "VLSI System Design",
+    "category": "SE/PC",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "68",
+        "row": 68,
+        "theory": "F1",
+        "lab": "L39+L40",
+        "pairs": [
+          "L39+L40"
+        ],
+        "theoryFaculty": "Dr.Priya Singh",
+        "labFaculty": "Dr.Priya Singh",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE3036|System and Network on Chip",
+    "code": "ECE3036",
+    "name": "System and Network on Chip",
+    "category": "VLSI basket/CE",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "69",
+        "row": 69,
+        "theory": "C2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "New Faculty",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "This course code is shared with a different title in the source. Check your registration choice."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ECE2034|Analog Circuits",
+    "code": "ECE2034",
+    "name": "Analog Circuits",
+    "category": "PC",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "72",
+        "row": 72,
+        "theory": "G1",
+        "lab": "L21+L22,L19+L20",
+        "pairs": [
+          "L21+L22",
+          "L19+L20"
+        ],
+        "theoryFaculty": "Dr.Vijayshree",
+        "labFaculty": "Dr.Vijayshree",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Multiple lab pairs listed; batch alternatives are not specified. All pairs are reserved by default."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ECE2031|Signals and Systems",
+    "code": "ECE2031",
+    "name": "Signals and Systems",
+    "category": "PC/CE",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "73",
+        "row": 73,
+        "theory": "F1",
+        "lab": "L29+L30",
+        "pairs": [
+          "L29+L30"
+        ],
+        "theoryFaculty": "Dr.Anughna",
+        "labFaculty": "Dr.Anughna",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE2032|Circuit Theory and control systems",
+    "code": "ECE2032",
+    "name": "Circuit Theory and control systems",
+    "category": "PC",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "74",
+        "row": 74,
+        "theory": "F1",
+        "lab": "L27+L28",
+        "pairs": [
+          "L27+L28"
+        ],
+        "theoryFaculty": "Ms.Sreevidya",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "F1 provides 2 weekly theory periods but the sheet lists 3 theory hours. Confirm the missing period."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ECE1006|Digital Design and Modelling",
+    "code": "ECE1006",
+    "name": "Digital Design and Modelling",
+    "category": "PC",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "75",
+        "row": 75,
+        "theory": "E1",
+        "lab": "L31+L32,L35+L36",
+        "pairs": [
+          "L31+L32",
+          "L35+L36"
+        ],
+        "theoryFaculty": "Dr.Sarfraz",
+        "labFaculty": "Dr.Sarfraz",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Multiple lab pairs listed; batch alternatives are not specified. All pairs are reserved by default."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ECE1004|Engineering Electromagnetics",
+    "code": "ECE1004",
+    "name": "Engineering Electromagnetics",
+    "category": "PC/CE",
+    "credits": 2.0,
+    "options": [
+      {
+        "id": "76",
+        "row": 76,
+        "theory": "G1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Swastik sahoo",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "ECE2043|Battery Management System",
+    "code": "ECE2043",
+    "name": "Battery Management System",
+    "category": "Prigram core",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "77",
+        "row": 77,
+        "theory": "C1",
+        "lab": "L23+L24",
+        "pairs": [
+          "L23+L24"
+        ],
+        "theoryFaculty": "Dr.Surajit( Only for EVT)",
+        "labFaculty": "Dr.Surajit",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE3050|Programming Skills for Employment.",
+    "code": "CSE3050",
+    "name": "Programming Skills for Employment.",
+    "category": "School Core",
+    "credits": 1.0,
+    "options": [
+      {
+        "id": "79",
+        "row": 79,
+        "theory": "",
+        "lab": "L25+L26",
+        "pairs": [
+          "L25+L26"
+        ],
+        "theoryFaculty": "Dr. Priyanka Chakraborty",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE5020|Natural Language Processing Techniques",
+    "code": "CSE5020",
+    "name": "Natural Language Processing Techniques",
+    "category": "Artificial Intelligence and Machine Learning Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "80",
+        "row": 80,
+        "theory": "C1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr Nashreen",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE5048|Data Analytics using R",
+    "code": "CSE5048",
+    "name": "Data Analytics using R",
+    "category": "Data Analytics Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "81",
+        "row": 81,
+        "theory": "G1",
+        "lab": "L27+L28",
+        "pairs": [
+          "L27+L28"
+        ],
+        "theoryFaculty": "Dr.Rajesh",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE5092|Cyber-physical Systems",
+    "code": "CSE5092",
+    "name": "Cyber-physical Systems",
+    "category": "IoT Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "82",
+        "row": 82,
+        "theory": "C2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr.Monit Kapoor",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CSE5095|Robotic Operating System",
+    "code": "CSE5095",
+    "name": "Robotic Operating System",
+    "category": "Robotics Basket",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "83",
+        "row": 83,
+        "theory": "G2",
+        "lab": "L39+L40",
+        "pairs": [
+          "L39+L40"
+        ],
+        "theoryFaculty": "Dr.Manjunath",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "MAT2002|Discrete Mathematics and Graph Theory",
+    "code": "MAT2002",
+    "name": "Discrete Mathematics and Graph Theory",
+    "category": "B.Tech",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "87",
+        "row": 87,
+        "theory": "D1+TA1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Bhavya K",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "88",
+        "row": 88,
+        "theory": "C1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Ravi J",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "89",
+        "row": 89,
+        "theory": "C2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Ravi J",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "90",
+        "row": 90,
+        "theory": "B2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Chethan",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "91",
+        "row": 91,
+        "theory": "E1+TC1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Ms. Shwetha",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "92",
+        "row": 92,
+        "theory": "B2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Tanuja T N",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "93",
+        "row": 93,
+        "theory": "B1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Nagamani",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "94",
+        "row": 94,
+        "theory": "C1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Nagamani",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "95",
+        "row": 95,
+        "theory": "B2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Hemanta Mandal",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "96",
+        "row": 96,
+        "theory": "E1+TC1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Hemanta Mandal",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "97",
+        "row": 97,
+        "theory": "A1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Palle Prathap Reddy",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "98",
+        "row": 98,
+        "theory": "B1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Palle Prathap Reddy",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "99",
+        "row": 99,
+        "theory": "E1+TC1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Palle Prathap Reddy",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "MAT1013|Statistics and Probability",
+    "code": "MAT1013",
+    "name": "Statistics and Probability",
+    "category": "B.Tech",
+    "credits": 4.0,
+    "options": [
+      {
+        "id": "100",
+        "row": 100,
+        "theory": "F1",
+        "lab": "L27+L28",
+        "pairs": [
+          "L27+L28"
+        ],
+        "theoryFaculty": "Dr. Padmasudha G",
+        "labFaculty": "Dr. Padmasudha G",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "PHY1001|Physics of Optoelectronic Devices",
+    "code": "PHY1001",
+    "name": "Physics of Optoelectronic Devices",
+    "category": "B.Tech",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "101",
+        "row": 101,
+        "theory": "G1",
+        "lab": "L9+L10&L1+L2",
+        "pairs": [
+          "L9+L10",
+          "L1+L2"
+        ],
+        "theoryFaculty": "Dr. Chandan R",
+        "labFaculty": "Dr. Chandan R & Dr. Vishnu Vikesh Jaiswal, Dr. Ashwitha Nancy Dsouza & Dr. Ayushi Rastogi",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Multiple lab pairs listed; batch alternatives are not specified. All pairs are reserved by default.",
+          "G1 provides 2 weekly theory periods but the sheet lists 3 theory hours. Confirm the missing period."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PHY1004|Engineering Physics",
+    "code": "PHY1004",
+    "name": "Engineering Physics",
+    "category": "All UG",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "102",
+        "row": 102,
+        "theory": "B1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Ayushi Rastogi",
+        "labFaculty": "Open Elective",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "103",
+        "row": 103,
+        "theory": "C1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Ayushi Rastogi",
+        "labFaculty": "Open Elective",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CHE1007|Chemistry for Engineering Applications",
+    "code": "CHE1007",
+    "name": "Chemistry for Engineering Applications",
+    "category": "All UG",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "104",
+        "row": 104,
+        "theory": "A1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Shruthi K S",
+        "labFaculty": "Open Elective",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "CHE1001|Environmental Studies",
+    "code": "CHE1001",
+    "name": "Environmental Studies",
+    "category": "All UG",
+    "credits": 0.0,
+    "options": [
+      {
+        "id": "105",
+        "row": 105,
+        "theory": "F2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Shruthi K S",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "SSK2002|Being Corporate Ready",
+    "code": "SSK2002",
+    "name": "Being Corporate Ready",
+    "category": "All UG",
+    "credits": 1.0,
+    "options": [
+      {
+        "id": "107",
+        "row": 107,
+        "theory": "",
+        "lab": "L11+L12",
+        "pairs": [
+          "L11+L12"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sangeetha K G",
+        "venue": "AB2_114",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "108",
+        "row": 108,
+        "theory": "",
+        "lab": "L35+L36",
+        "pairs": [
+          "L35+L36"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sangeetha K G",
+        "venue": "AB2_114",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "109",
+        "row": 109,
+        "theory": "",
+        "lab": "L23+L24",
+        "pairs": [
+          "L23+L24"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms- Jasper Benarji",
+        "venue": "AB2_112",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "110",
+        "row": 110,
+        "theory": "",
+        "lab": "L19+L20",
+        "pairs": [
+          "L19+L20"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms- Jasper Benarji",
+        "venue": "AB2_114",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "111",
+        "row": 111,
+        "theory": "",
+        "lab": "L11+L12",
+        "pairs": [
+          "L11+L12"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms- Jasper Benarji",
+        "venue": "512 A",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "SSK3001|Problem Solving through Aptitude",
+    "code": "SSK3001",
+    "name": "Problem Solving through Aptitude",
+    "category": "All UG",
+    "credits": 1.0,
+    "options": [
+      {
+        "id": "112",
+        "row": 112,
+        "theory": "",
+        "lab": "L3+L4",
+        "pairs": [
+          "L3+L4"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. SHIDDALINGA SOORAGOND",
+        "venue": "509",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "113",
+        "row": 113,
+        "theory": "",
+        "lab": "L7+L8",
+        "pairs": [
+          "L7+L8"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. SHIDDALINGA SOORAGOND",
+        "venue": "511",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "114",
+        "row": 114,
+        "theory": "",
+        "lab": "L15+L16",
+        "pairs": [
+          "L15+L16"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. SHIDDALINGA SOORAGOND",
+        "venue": "AB2_116",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "115",
+        "row": 115,
+        "theory": "",
+        "lab": "L19+L20",
+        "pairs": [
+          "L19+L20"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. SHIDDALINGA SOORAGOND",
+        "venue": "330",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "116",
+        "row": 116,
+        "theory": "",
+        "lab": "L23+L24",
+        "pairs": [
+          "L23+L24"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. SHIDDALINGA SOORAGOND",
+        "venue": "520",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "117",
+        "row": 117,
+        "theory": "",
+        "lab": "L29+L30",
+        "pairs": [
+          "L29+L30"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. SHIDDALINGA SOORAGOND",
+        "venue": "508",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "118",
+        "row": 118,
+        "theory": "",
+        "lab": "L35+L36",
+        "pairs": [
+          "L35+L36"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. SHIDDALINGA SOORAGOND",
+        "venue": "508",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "119",
+        "row": 119,
+        "theory": "",
+        "lab": "L39+L40",
+        "pairs": [
+          "L39+L40"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. SHIDDALINGA SOORAGOND",
+        "venue": "517",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "120",
+        "row": 120,
+        "theory": "",
+        "lab": "L35+L36",
+        "pairs": [
+          "L35+L36"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Selshiya Arputharaj Sharmi",
+        "venue": "509",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "121",
+        "row": 121,
+        "theory": "",
+        "lab": "L39+L40",
+        "pairs": [
+          "L39+L40"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Selshiya Arputharaj Sharmi",
+        "venue": "511",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "KAN1005|Kannada Kali (Basic Non- Kannadigas)",
+    "code": "KAN1005",
+    "name": "Kannada Kali (Basic Non- Kannadigas)",
+    "category": "Languages",
+    "credits": 1.0,
+    "options": [
+      {
+        "id": "123",
+        "row": 123,
+        "theory": "",
+        "lab": "L21+L22",
+        "pairs": [
+          "L21+L22"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Dr. Ashok Babu",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "124",
+        "row": 124,
+        "theory": "",
+        "lab": "L11+L12",
+        "pairs": [
+          "L11+L12"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Dr. Ashok Babu",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "125",
+        "row": 125,
+        "theory": "",
+        "lab": "L33+L34",
+        "pairs": [
+          "L33+L34"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Dr. Ashok Babu",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "126",
+        "row": 126,
+        "theory": "",
+        "lab": "L39+L40",
+        "pairs": [
+          "L39+L40"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Dr. Ashok Babu",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "KAN1004|Kannada Literature (Advanced - Kannadigas)",
+    "code": "KAN1004",
+    "name": "Kannada Literature (Advanced - Kannadigas)",
+    "category": "Languages",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "127",
+        "row": 127,
+        "theory": "C1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Ashok Babu",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "130",
+        "row": 130,
+        "theory": "C2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Dr. Ashok Babu",
+        "labFaculty": "",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "FRE1002|French",
+    "code": "FRE1002",
+    "name": "French",
+    "category": "Languages",
+    "credits": 1.0,
+    "options": [
+      {
+        "id": "133",
+        "row": 133,
+        "theory": "",
+        "lab": "L3+L4",
+        "pairs": [
+          "L3+L4"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. Dipankar Mondal",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "135",
+        "row": 135,
+        "theory": "",
+        "lab": "L9+L10",
+        "pairs": [
+          "L9+L10"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sia Ghai",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "141",
+        "row": 141,
+        "theory": "",
+        "lab": "L23+L24",
+        "pairs": [
+          "L23+L24"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. Dipankar Mondal",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "143",
+        "row": 143,
+        "theory": "",
+        "lab": "L25+L26",
+        "pairs": [
+          "L25+L26"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sia Ghai",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "144",
+        "row": 144,
+        "theory": "",
+        "lab": "L29+L30",
+        "pairs": [
+          "L29+L30"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sia Ghai",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "146",
+        "row": 146,
+        "theory": "",
+        "lab": "L13+L14",
+        "pairs": [
+          "L13+L14"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. Dipankar Mondal",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      },
+      {
+        "id": "148",
+        "row": 148,
+        "theory": "",
+        "lab": "L35+L36",
+        "pairs": [
+          "L35+L36"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sia Ghai",
+        "venue": "",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "FRE1002/SPA1001|French/Spanish",
+    "code": "FRE1002/SPA1001",
+    "name": "French/Spanish",
+    "category": "Languages",
+    "credits": 1.0,
+    "options": [
+      {
+        "id": "134",
+        "row": 134,
+        "theory": "",
+        "lab": "L7+L8",
+        "pairs": [
+          "L7+L8"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. Dipankar Mondal / Ms. Kajal Aggarwal",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Source combines French/Spanish. Confirm the language and faculty for this section before registration."
+        ]
+      },
+      {
+        "id": "136",
+        "row": 136,
+        "theory": "",
+        "lab": "L15+L16",
+        "pairs": [
+          "L15+L16"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sia Ghai / Ms. Kajal Aggarwal",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Source combines French/Spanish. Confirm the language and faculty for this section before registration."
+        ]
+      },
+      {
+        "id": "137",
+        "row": 137,
+        "theory": "",
+        "lab": "L19+L20",
+        "pairs": [
+          "L19+L20"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. Dipankar Mondal / Ms. Kajal Aggarwal",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Source combines French/Spanish. Confirm the language and faculty for this section before registration."
+        ]
+      },
+      {
+        "id": "138",
+        "row": 138,
+        "theory": "",
+        "lab": "L37+L38",
+        "pairs": [
+          "L37+L38"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sia Ghai",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Source combines French/Spanish. Confirm the language and faculty for this section before registration."
+        ]
+      },
+      {
+        "id": "139",
+        "row": 139,
+        "theory": "",
+        "lab": "L1+L2",
+        "pairs": [
+          "L1+L2"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sia Ghai / Ms. Kajal Aggarwal",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Source combines French/Spanish. Confirm the language and faculty for this section before registration."
+        ]
+      },
+      {
+        "id": "140",
+        "row": 140,
+        "theory": "",
+        "lab": "L23+L24",
+        "pairs": [
+          "L23+L24"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Ms. Sia Ghai / Ms. Kajal Aggarwal",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Source combines French/Spanish. Confirm the language and faculty for this section before registration."
+        ]
+      },
+      {
+        "id": "142",
+        "row": 142,
+        "theory": "",
+        "lab": "L11+L12",
+        "pairs": [
+          "L11+L12"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. Dipankar Mondal / Ms. Kajal Aggarwal",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Source combines French/Spanish. Confirm the language and faculty for this section before registration."
+        ]
+      },
+      {
+        "id": "145",
+        "row": 145,
+        "theory": "",
+        "lab": "L31+L32",
+        "pairs": [
+          "L31+L32"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. Dipankar Mondal / Ms. Kajal Aggarwal",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Source combines French/Spanish. Confirm the language and faculty for this section before registration."
+        ]
+      },
+      {
+        "id": "147",
+        "row": 147,
+        "theory": "",
+        "lab": "L33+L34",
+        "pairs": [
+          "L33+L34"
+        ],
+        "theoryFaculty": "",
+        "labFaculty": "Mr. Dipankar Mondal / Ms. Kajal Aggarwal",
+        "venue": "",
+        "project": false,
+        "warnings": [
+          "Source combines French/Spanish. Confirm the language and faculty for this section before registration."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "POS1045|Geopolitics of Energy: Oil, Minerals, and Green Transition",
+    "code": "POS1045",
+    "name": "Geopolitics of Energy: Oil, Minerals, and Green Transition",
+    "category": "Open Elective",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "150",
+        "row": 150,
+        "theory": "C1",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Mr. Shantanu Sharma",
+        "labFaculty": "",
+        "venue": "226",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "id": "POS1044|Politics Beyond Reason: Emotion, Affect, and Power",
+    "code": "POS1044",
+    "name": "Politics Beyond Reason: Emotion, Affect, and Power",
+    "category": "Open Elective",
+    "credits": 3.0,
+    "options": [
+      {
+        "id": "151",
+        "row": 151,
+        "theory": "D2+TA2",
+        "lab": "",
+        "pairs": [],
+        "theoryFaculty": "Mr. Shantanu Sharma",
+        "labFaculty": "",
+        "venue": "226",
+        "project": false,
+        "warnings": []
+      }
+    ]
+  }
+]
