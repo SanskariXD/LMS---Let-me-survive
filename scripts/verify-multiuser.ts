@@ -5,7 +5,7 @@ import {
   getUserById,
   createTask, 
   getUserTasks,
-  saveUserPreferences,
+  upsertUserPreferences,
   getUserPreferences,
   addManualCourse,
   getUserManualCourses,
@@ -103,7 +103,7 @@ async function runVerification() {
     courseCode: 'CSE101',
     courseName: 'Intro to Programming',
     credits: 4,
-    grade: 'A+'
+    componentType: 'Theory'
   });
 
   const coursesA = await getUserManualCourses(userA.id);

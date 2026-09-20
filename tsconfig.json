@@ -44,6 +44,8 @@
     "examples",
     "build",
     "db",
-    "drizzle.config.ts"
+    "drizzle.config.ts",
+    "scripts",
+    ".next"
   ]
 }
