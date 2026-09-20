@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { universityRequest } from '@/lib/university/client';
 import { UNIVERSITY_ENDPOINTS } from '@/lib/university/endpoints';
+import { validateSession } from '@/lib/portal/session';
+
+export const preferredRegion = 'bom1';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await validateSession();
+    const userId = session?.userId || request.headers.get('x-user-id') || undefined;
+
     const { searchParams } = request.nextUrl;
     const slotYear = searchParams.get('slot_year');
     const semesterType = searchParams.get('semester_type');
@@ -22,8 +28,8 @@ export async function GET(request: NextRequest) {
 
     // Call both marks and consolidated endpoints in parallel
     const [marksResult, consolidatedResult] = await Promise.allSettled([
-      universityRequest<any>(marksEndpoint),
-      universityRequest<any>(consolidatedEndpoint),
+      universityRequest<any>(marksEndpoint, { userId }),
+      universityRequest<any>(consolidatedEndpoint, { userId }),
     ]);
 
     const marksData = marksResult.status === 'fulfilled' ? marksResult.value : null;

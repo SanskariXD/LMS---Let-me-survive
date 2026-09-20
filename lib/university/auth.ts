@@ -1,8 +1,17 @@
 import { universityConfig } from './config';
 import { universityLog } from './logger';
 import { UNIVERSITY_ENDPOINTS } from './endpoints';
-import { setCachedUniversityToken } from './token-store';
 import type { UniversityToken, UniversityLoginResponse } from '@/types/university';
+
+export interface UniversityLoginResult extends UniversityToken {
+  user: {
+    user_id: number;
+    username: string;
+    email: string;
+    full_name: string;
+    role: string;
+  };
+}
 
 function decodeJwtExpiry(token: string): number {
   const parts = token.split('.');
@@ -14,23 +23,43 @@ function decodeJwtExpiry(token: string): number {
   return payload.exp * 1000; // convert to ms
 }
 
-export async function loginToUniversity(): Promise<UniversityToken> {
-  universityLog('AUTH_START');
+export async function loginToUniversity(credentials?: {
+  username: string;
+  password: string;
+}): Promise<UniversityLoginResult> {
+  const username = credentials?.username || universityConfig.username;
+  const password = credentials?.password || universityConfig.password;
+
+  universityLog('AUTH_START', { username: username.split('@')[0] });
 
   const url = `${universityConfig.baseUrl}${UNIVERSITY_ENDPOINTS.login}`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    signal: AbortSignal.timeout(5000),
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username: universityConfig.username,
-      password: universityConfig.password,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      signal: AbortSignal.timeout(6000),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+  } catch (err: any) {
+    if (err?.name === 'TimeoutError' || err?.message?.includes('timeout')) {
+      universityLog('TIMEOUT', { endpoint: UNIVERSITY_ENDPOINTS.login });
+      throw new Error('University service connection timed out. Services may be offline.');
+    }
+    universityLog('AUTH_FAILED', { error: err?.message });
+    throw new Error('Could not reach university authentication server.');
+  }
 
   if (!response.ok) {
     universityLog('AUTH_FAILED', { status: response.status });
+    if (response.status === 401 || response.status === 400) {
+      throw new Error('Invalid university enrollment number or password.');
+    }
+    if (response.status === 403) {
+      universityLog('GEO_BLOCKED', { status: 403 });
+      throw new Error('University server rejected request (access restricted by region/IP).');
+    }
     throw new Error(`University login failed with status ${response.status}`);
   }
 
@@ -41,26 +70,18 @@ export async function loginToUniversity(): Promise<UniversityToken> {
     throw new Error('University login response did not contain a valid token');
   }
 
-  if (data.message !== 'Login successful') {
-    universityLog('AUTH_FAILED', { message: data.message });
-    throw new Error(`University login returned unexpected message: ${data.message}`);
-  }
-
   const expiresAt = decodeJwtExpiry(data.token);
   const expiresInSeconds = Math.round((expiresAt - Date.now()) / 1000);
 
-  const universityToken: UniversityToken = {
-    token: data.token,
-    expiresAt,
-  };
-
-  setCachedUniversityToken(universityToken);
-
   universityLog('AUTH_SUCCESS', {
-    userRole: data.user.role,
+    userRole: data.user?.role,
     expiresIn: `${expiresInSeconds}s`,
-    tokenPresent: true,
+    username: username.split('@')[0],
   });
 
-  return universityToken;
+  return {
+    token: data.token,
+    expiresAt,
+    user: data.user,
+  };
 }

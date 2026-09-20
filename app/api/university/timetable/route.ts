@@ -1,10 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { universityRequest } from '@/lib/university/client';
 import { UNIVERSITY_ENDPOINTS } from '@/lib/university/endpoints';
+import { validateSession } from '@/lib/portal/session';
 
-export async function GET() {
+export const preferredRegion = 'bom1';
+
+export async function GET(request: NextRequest) {
   try {
-    const data = await universityRequest(UNIVERSITY_ENDPOINTS.slots);
+    const session = await validateSession();
+    const userId = session?.userId || request.headers.get('x-user-id') || undefined;
+    const data = await universityRequest(UNIVERSITY_ENDPOINTS.slots, { userId });
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json(

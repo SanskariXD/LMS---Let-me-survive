@@ -160,22 +160,76 @@ export function TasksView({ enrolledCourses = [], onTasksUpdated }: TasksViewPro
   // In-portal toast notice
   const [bannerNotice, setBannerNotice] = useState<string | null>(null);
 
-  // Load from localStorage on mount
+  // Load from localStorage & sync from backend on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        setTasks(parsed);
-        if (onTasksUpdated) onTasksUpdated(parsed);
-      } else {
-        setTasks(INITIAL_TASKS);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_TASKS));
-        if (onTasksUpdated) onTasksUpdated(INITIAL_TASKS);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTasks(parsed);
+          if (onTasksUpdated) onTasksUpdated(parsed);
+        }
       }
-    } catch {
-      setTasks(INITIAL_TASKS);
-    }
+    } catch {}
+
+    // Synchronize with server-side tasks database
+    fetch('/api/tasks')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.tasks)) {
+          if (data.tasks.length > 0) {
+            const mapped: TaskItem[] = data.tasks.map((t: any) => ({
+              id: t.id,
+              type: t.is_assignment ? 'assignment' : 'todo',
+              title: t.title,
+              description: t.description || undefined,
+              completed: !!t.completed,
+              createdAt: new Date(t.created_at).toISOString(),
+              priority: (t.priority?.toUpperCase() as any) || 'MEDIUM',
+              dueDate: t.deadline_date || undefined,
+              dueTime: t.deadline_time || undefined,
+              reminder: t.reminder_mins ? (`${t.reminder_mins}m` as any) : 'none',
+              customReminderMinutes: t.reminder_mins || 30,
+              courseCode: t.course || undefined,
+              courseName: t.course || undefined,
+              professor: t.professor || undefined,
+              slot: t.slot || undefined,
+              submissionLink: t.submission_url || undefined,
+              category: 'College',
+            }));
+            setTasks(mapped);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
+            if (onTasksUpdated) onTasksUpdated(mapped);
+          } else {
+            // Seed initial sample tasks if account is brand new
+            INITIAL_TASKS.forEach((it) => {
+              fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: it.id,
+                  title: it.title,
+                  isAssignment: it.type === 'assignment',
+                  course: it.courseCode,
+                  professor: it.professor,
+                  slot: it.slot,
+                  description: it.description,
+                  deadlineDate: it.dueDate,
+                  deadlineTime: it.dueTime,
+                  priority: it.priority?.toLowerCase(),
+                  completed: it.completed,
+                  submissionUrl: it.submissionLink,
+                }),
+              }).catch(() => {});
+            });
+            setTasks(INITIAL_TASKS);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_TASKS));
+            if (onTasksUpdated) onTasksUpdated(INITIAL_TASKS);
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
 
   function saveTasks(updated: TaskItem[]) {
@@ -210,9 +264,11 @@ export function TasksView({ enrolledCourses = [], onTasksUpdated }: TasksViewPro
 
   // Toggle completion
   function toggleComplete(id: string) {
+    let nextState = false;
     const updated = tasks.map((t) => {
       if (t.id === id) {
         const nextCompleted = !t.completed;
+        nextState = nextCompleted;
         return {
           ...t,
           completed: nextCompleted,
@@ -222,12 +278,20 @@ export function TasksView({ enrolledCourses = [], onTasksUpdated }: TasksViewPro
       return t;
     });
     saveTasks(updated);
+
+    fetch(`/api/tasks/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: nextState }),
+    }).catch(() => {});
   }
 
   // Delete task
   function deleteTask(id: string) {
     const updated = tasks.filter((t) => t.id !== id);
     saveTasks(updated);
+
+    fetch(`/api/tasks/${id}`, { method: 'DELETE' }).catch(() => {});
   }
 
   // Open modal for new task
@@ -281,9 +345,10 @@ export function TasksView({ enrolledCourses = [], onTasksUpdated }: TasksViewPro
 
     if (editingTaskId) {
       // Edit
+      let editedTask: TaskItem | null = null;
       const updated = tasks.map((t) => {
         if (t.id === editingTaskId) {
-          return {
+          editedTask = {
             ...t,
             type: modalTaskType,
             title: formTitle.trim(),
@@ -305,14 +370,36 @@ export function TasksView({ enrolledCourses = [], onTasksUpdated }: TasksViewPro
               modalTaskType === 'assignment' ? formSubmissionLink.trim() || undefined : undefined,
             category: modalTaskType === 'todo' ? formCategory : undefined,
           };
+          return editedTask;
         }
         return t;
       });
       saveTasks(updated);
+
+      if (editedTask) {
+        fetch(`/api/tasks/${editingTaskId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: formTitle.trim(),
+            description: formDesc.trim() || undefined,
+            priority: formPriority.toLowerCase(),
+            isAssignment: modalTaskType === 'assignment',
+            course: modalTaskType === 'assignment' ? formCourse || undefined : undefined,
+            professor: modalTaskType === 'assignment' ? formProf.trim() || undefined : undefined,
+            slot: modalTaskType === 'assignment' ? formSlot.trim() || undefined : undefined,
+            deadlineDate: formDueDate || undefined,
+            deadlineTime: formDueDate ? formDueTime || '23:59' : undefined,
+            submissionUrl: formSubmissionLink.trim() || undefined,
+            reminderMins: formReminder === 'custom' ? Number(formCustomMin) || 30 : (formReminder === '1d' ? 1440 : formReminder === '1h' ? 60 : 30),
+          }),
+        }).catch(() => {});
+      }
     } else {
       // Create new
+      const newTaskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const newTask: TaskItem = {
-        id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: newTaskId,
         type: modalTaskType,
         title: formTitle.trim(),
         description: formDesc.trim() || undefined,
@@ -334,6 +421,26 @@ export function TasksView({ enrolledCourses = [], onTasksUpdated }: TasksViewPro
         category: modalTaskType === 'todo' ? formCategory : undefined,
       };
       saveTasks([newTask, ...tasks]);
+
+      fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: newTaskId,
+          title: newTask.title,
+          isAssignment: modalTaskType === 'assignment',
+          course: newTask.courseCode,
+          professor: newTask.professor,
+          slot: newTask.slot,
+          description: newTask.description,
+          deadlineDate: newTask.dueDate,
+          deadlineTime: newTask.dueTime,
+          priority: formPriority.toLowerCase(),
+          completed: false,
+          submissionUrl: newTask.submissionLink,
+          reminderMins: formReminder === 'custom' ? Number(formCustomMin) || 30 : (formReminder === '1d' ? 1440 : formReminder === '1h' ? 60 : 30),
+        }),
+      }).catch(() => {});
     }
 
     setModalOpen(false);

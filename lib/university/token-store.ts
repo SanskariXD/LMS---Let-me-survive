@@ -1,22 +1,22 @@
 import type { UniversityToken } from '@/types/university';
 
 const TOKEN_SAFETY_WINDOW = 60_000; // 1 minute early expiry
+const userTokens = new Map<string, UniversityToken>();
 
-let tokenCache: UniversityToken | null = null;
-
-export function getCachedUniversityToken(): UniversityToken | null {
-  return tokenCache;
+export function getCachedUniversityToken(userId: string): UniversityToken | null {
+  return userTokens.get(userId) || null;
 }
 
-export function setCachedUniversityToken(token: UniversityToken): void {
-  tokenCache = token;
+export function setCachedUniversityToken(userId: string, token: UniversityToken): void {
+  userTokens.set(userId, token);
 }
 
-export function clearUniversityToken(): void {
-  tokenCache = null;
+export function clearUniversityToken(userId: string): void {
+  userTokens.delete(userId);
 }
 
-export function isTokenValid(): boolean {
-  if (!tokenCache) return false;
-  return tokenCache.expiresAt > Date.now() + TOKEN_SAFETY_WINDOW;
+export function isTokenValid(userId: string): boolean {
+  const token = userTokens.get(userId);
+  if (!token) return false;
+  return token.expiresAt > Date.now() + TOKEN_SAFETY_WINDOW;
 }

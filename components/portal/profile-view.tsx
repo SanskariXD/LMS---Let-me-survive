@@ -24,8 +24,18 @@ import {
   Sparkles,
   ExternalLink,
   Flame,
+  LockKeyhole,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import {
   getUniversitySnapshot,
@@ -52,6 +62,7 @@ interface ProfileViewProps {
   language?: Language;
   onRefreshData?: () => Promise<void>;
   onNavigateView?: (view: string) => void;
+  onSwitchUser?: () => void;
 }
 
 export function ProfileView({
@@ -62,13 +73,22 @@ export function ProfileView({
   language = 'en',
   onRefreshData,
   onNavigateView,
+  onSwitchUser,
 }: ProfileViewProps) {
-  // Preferences state (stored in localStorage)
+  // Preferences state (stored in localStorage & backend)
   const [prefAssignmentReminders, setPrefAssignmentReminders] = useState(true);
   const [prefTodoReminders, setPrefTodoReminders] = useState(true);
   const [prefBrowserNotifications, setPrefBrowserNotifications] = useState(false);
   const [prefDefaultReminder, setPrefDefaultReminder] = useState('1h');
   const [prefTheme, setPrefTheme] = useState<'system' | 'light' | 'dark'>('system');
+
+  // PIN modal state
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [currentPinInput, setCurrentPinInput] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [pinSubmitting, setPinSubmitting] = useState(false);
+  const [pinMessage, setPinMessage] = useState<string | null>(null);
+  const [pinIsError, setPinIsError] = useState(false);
 
   // Offline status & Tasks count
   const [cacheTimestamp, setCacheTimestamp] = useState<string | null>(null);
@@ -113,9 +133,22 @@ export function ProfileView({
       setCacheTimestamp(ts);
       const snapshot = getUniversitySnapshot(studentId);
       setHasSavedData(!!snapshot);
-    } catch {
-      // ignore
-    }
+    } catch {}
+
+    // Hydrate preferences from server
+    fetch('/api/user/preferences')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.preferences) {
+          const p = data.preferences;
+          if (p.assignment_reminders !== undefined) setPrefAssignmentReminders(p.assignment_reminders);
+          if (p.todo_reminders !== undefined) setPrefTodoReminders(p.todo_reminders);
+          if (p.browser_notifications !== undefined) setPrefBrowserNotifications(p.browser_notifications);
+          if (p.default_reminder) setPrefDefaultReminder(p.default_reminder);
+          if (p.theme) setPrefTheme(p.theme);
+        }
+      })
+      .catch(() => {});
   }, [studentId]);
 
   function savePreference(key: string, value: any) {
@@ -124,9 +157,13 @@ export function ProfileView({
       const parsed = JSON.parse(stored);
       parsed[key] = value;
       localStorage.setItem('slotwise_user_preferences', JSON.stringify(parsed));
-    } catch {
-      // ignore
-    }
+    } catch {}
+
+    fetch('/api/user/preferences', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [key]: value }),
+    }).catch(() => {});
   }
 
   async function handleToggleBrowserNotifications(enable: boolean) {
@@ -190,8 +227,49 @@ export function ProfileView({
     setTimeout(() => setCopiedEnrollment(false), 2000);
   }
 
+  async function handleUpdatePin(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPinInput.length !== 6) {
+      setPinIsError(true);
+      setPinMessage('New PIN must be exactly 6 digits.');
+      return;
+    }
+
+    setPinSubmitting(true);
+    setPinMessage(null);
+
+    try {
+      const res = await fetch('/api/user/pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPin: currentPinInput,
+          newPin: newPinInput,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update PIN');
+      }
+
+      setPinIsError(false);
+      setPinMessage('PIN updated successfully!');
+      setTimeout(() => {
+        setPinModalOpen(false);
+        setCurrentPinInput('');
+        setNewPinInput('');
+        setPinMessage(null);
+      }, 1500);
+    } catch (err: any) {
+      setPinIsError(true);
+      setPinMessage(err.message || 'Failed to update PIN');
+    } finally {
+      setPinSubmitting(false);
+    }
+  }
+
   // Format student details
-  const rawName = session?.user.name || 'Mr ANJAN SHETTY C';
+  const rawName = session?.user.name || 'Student';
   const cleanName = rawName.replace(/^(mr|ms|mrs|dr|prof)\.?\s+/i, '').trim();
   const formattedName = cleanName
     .split(' ')
@@ -639,8 +717,121 @@ export function ProfileView({
               </div>
             </div>
           </div>
+
+          {/* CARD: ACCOUNT & SECURITY */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="space-y-0.5">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <ShieldCheck size={16} className="text-emerald-600" />
+                <span>Account & Security</span>
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium">
+                Manage your quick-unlock PIN and portal session.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPinModalOpen(true)}
+                className="w-full h-9 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <LockKeyhole size={13} />
+                <span>Change 6-Digit PIN</span>
+              </Button>
+
+              {onSwitchUser && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onSwitchUser}
+                  className="w-full h-9 text-xs font-bold border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <LogOut size={13} />
+                  <span>Switch Account / Sign Out</span>
+                </Button>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
+
+      {/* CHANGE PIN DIALOG */}
+      <Dialog open={pinModalOpen} onOpenChange={setPinModalOpen}>
+        <DialogContent className="max-w-sm p-6 rounded-2xl bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <LockKeyhole size={18} className="text-indigo-600" />
+              <span>Change Portal PIN</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Set a 6-digit PIN for quick biometric/keypad unlock on this device.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdatePin} className="space-y-4 mt-2">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">Current PIN (if set)</label>
+              <Input
+                type="password"
+                maxLength={6}
+                placeholder="Current 6-digit PIN"
+                value={currentPinInput}
+                onChange={(e) => setCurrentPinInput(e.target.value.replace(/\D/g, ''))}
+                className="font-mono text-sm tracking-widest text-center"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">New 6-Digit PIN</label>
+              <Input
+                type="password"
+                maxLength={6}
+                required
+                placeholder="New 6-digit PIN"
+                value={newPinInput}
+                onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, ''))}
+                className="font-mono text-sm tracking-widest text-center"
+              />
+            </div>
+
+            {pinMessage && (
+              <div
+                className={`p-2.5 rounded-lg text-xs text-center font-medium ${
+                  pinIsError
+                    ? 'bg-rose-50 text-rose-600 border border-rose-100'
+                    : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                }`}
+              >
+                {pinMessage}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPinModalOpen(false)}
+                disabled={pinSubmitting}
+                className="h-8 text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={pinSubmitting || newPinInput.length !== 6}
+                className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+              >
+                {pinSubmitting ? 'Updating…' : 'Save PIN'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

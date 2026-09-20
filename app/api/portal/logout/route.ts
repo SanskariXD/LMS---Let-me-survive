@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
-import { clearSession } from '@/lib/portal/session';
+import { clearSession, validateSession } from '@/lib/portal/session';
 import { clearUniversityToken } from '@/lib/university/token-store';
 
 export async function POST() {
   try {
-    clearUniversityToken();
+    const session = await validateSession();
+    if (session?.userId) {
+      clearUniversityToken(session.userId);
+    }
     await clearSession();
     return NextResponse.json({ unlocked: false });
   } catch (error) {

@@ -4,6 +4,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "LMS² — Let me survive",
   description: "Your student survival workspace for attendance, tasks, timetable and courses.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "LMS²",
+  },
   icons: {
     icon: "/lms-favicon.png",
     shortcut: "/lms-favicon.png",

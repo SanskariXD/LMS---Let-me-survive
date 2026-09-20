@@ -56,6 +56,7 @@ export interface AcademicResource {
   isOpenBook?: boolean;
   examOrAssessmentName?: string;
   isUserShared?: boolean;
+  downloadUrl?: string;
 }
 
 const STORAGE_KEY = 'slotwise_shared_resources';
@@ -241,9 +242,11 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
   const [shareFileName, setShareFileName] = useState('');
   const [shareFileSize, setShareFileSize] = useState('');
   const [shareTags, setShareTags] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Load custom shared resources & bookmarks from localStorage
+  // Load custom shared resources & bookmarks from backend & localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -263,9 +266,46 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
       if (helpful) {
         setHelpfulIds(new Set(JSON.parse(helpful)));
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
+
+    // Fetch persistent shared resources from backend
+    fetch('/api/resources')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.resources) && data.resources.length > 0) {
+          const mapped: AcademicResource[] = data.resources.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description || undefined,
+            resourceType: r.resource_type as ResourceType,
+            courseCode: r.course,
+            courseName: r.course,
+            professor: r.professor || 'Faculty',
+            slot: r.slot || 'Campus',
+            semester: r.semester,
+            sharedBy: r.uploader_name || 'Student',
+            dateAdded: new Date(r.created_at).toISOString().split('T')[0],
+            fileType: (r.file_name?.endsWith('.zip') ? 'ZIP' : 'PDF') as any,
+            fileSize: r.file_size ? `${(r.file_size / (1024 * 1024)).toFixed(1)} MB` : '1.2 MB',
+            isOpenBook: !!r.is_open_book,
+            tags: typeof r.tags === 'string' ? JSON.parse(r.tags) : undefined,
+            downloadUrl: r.file_url,
+            isUserShared: true,
+          }));
+
+          setResources([...mapped, ...INITIAL_RESOURCES]);
+
+          const serverBookmarked = new Set<string>();
+          const serverVoted = new Set<string>();
+          data.resources.forEach((r: any) => {
+            if (r.isBookmarked) serverBookmarked.add(r.id);
+            if (r.hasVoted) serverVoted.add(r.id);
+          });
+          if (serverBookmarked.size > 0) setSavedIds(serverBookmarked);
+          if (serverVoted.size > 0) setHelpfulIds(serverVoted);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   function triggerNotice(msg: string) {
@@ -281,14 +321,14 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
       triggerNotice('Removed from saved bookmarks.');
     } else {
       next.add(id);
-      triggerNotice('Saved to your local bookmarks.');
+      triggerNotice('Saved to your bookmarks.');
     }
     setSavedIds(next);
     try {
       localStorage.setItem(SAVED_BOOKMARKS_KEY, JSON.stringify(Array.from(next)));
-    } catch {
-      // ignore
-    }
+    } catch {}
+
+    fetch(`/api/resources/${id}/bookmark`, { method: 'POST' }).catch(() => {});
   }
 
   // Toggle helpful
@@ -303,21 +343,50 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
     setHelpfulIds(next);
     try {
       localStorage.setItem(HELPFUL_VOTES_KEY, JSON.stringify(Array.from(next)));
-    } catch {
-      // ignore
-    }
+    } catch {}
+
+    fetch(`/api/resources/${id}/vote`, { method: 'POST' }).catch(() => {});
+  }
+
+  // Delete resource
+  function handleDeleteResource(id: string) {
+    setResources((prev) => prev.filter((r) => r.id !== id));
+    fetch(`/api/resources/${id}`, { method: 'DELETE' }).catch(() => {});
+    triggerNotice('Resource deleted.');
   }
 
   // Handle Share form submit
-  function handleShareSubmit(e: React.FormEvent) {
+  async function handleShareSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!shareTitle.trim() || !shareCourse.trim()) return;
 
+    setUploading(true);
+    let uploadedFileUrl = '#';
+
+    // 1. Upload file if selected
+    if (selectedFile) {
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        const uploadRes = await fetch('/api/resources/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) {
+          uploadedFileUrl = uploadData.url;
+        }
+      } catch (err) {
+        console.error('[ResourceUpload] File upload failed:', err);
+      }
+    }
+
     const matchedCourse = enrolledCourses.find((c) => c.code === shareCourse);
     const isOb = shareType === 'Open Book Notes';
+    const newId = `user-res-${Date.now()}`;
 
     const newRes: AcademicResource = {
-      id: `user-res-${Date.now()}`,
+      id: newId,
       title: shareTitle.trim(),
       description: shareDesc.trim() || 'Uploaded by student.',
       resourceType: shareType,
@@ -332,6 +401,7 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
       fileSize: shareFileSize || '2.5 MB',
       isOpenBook: isOb,
       examOrAssessmentName: isOb ? shareExamName || 'Assessment Reference' : undefined,
+      downloadUrl: uploadedFileUrl !== '#' ? uploadedFileUrl : undefined,
       tags: shareTags
         ? shareTags
             .split(',')
@@ -344,17 +414,36 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
     const updated = [newRes, ...resources];
     setResources(updated);
 
-    // Save user shares to localStorage
+    // Persist to server
+    fetch('/api/resources', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: newRes.title,
+        description: newRes.description,
+        course: newRes.courseCode,
+        professor: newRes.professor,
+        slot: newRes.slot,
+        semester: newRes.semester,
+        resourceType: newRes.resourceType,
+        isOpenBook: newRes.isOpenBook,
+        fileUrl: uploadedFileUrl,
+        fileName: shareFileName || 'document.pdf',
+        fileSize: selectedFile?.size || 1024 * 1024,
+        fileMimeType: selectedFile?.type,
+        tags: newRes.tags,
+      }),
+    }).catch(() => {});
+
     try {
       const userOnly = updated.filter((r) => r.isUserShared);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(userOnly));
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     triggerNotice('Resource shared successfully!');
     setShareModalOpen(false);
-    // Reset form
+    setUploading(false);
+    setSelectedFile(null);
     setShareTitle('');
     setShareDesc('');
     setShareFileName('');
@@ -886,10 +975,11 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
               <div className="border border-dashed border-slate-300 rounded-xl p-4 text-center hover:bg-slate-50 transition-colors cursor-pointer relative">
                 <input
                   type="file"
-                  accept=".pdf,.zip,.docx,.pptx,.txt"
+                  accept=".pdf,.zip,.docx,.pptx,.txt,.png,.jpg,.jpeg"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) {
+                      setSelectedFile(f);
                       setShareFileName(f.name);
                       setShareFileSize(`${(f.size / (1024 * 1024)).toFixed(1)} MB`);
                     }
@@ -901,7 +991,7 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
                   <p className="text-xs font-semibold text-slate-700">
                     {shareFileName || 'Choose file or drag & drop here'}
                   </p>
-                  <p className="text-[10px] text-slate-400">PDF, ZIP, DOCX up to 50MB</p>
+                  <p className="text-[10px] text-slate-400">PDF, ZIP, DOCX up to 25MB</p>
                 </div>
               </div>
             </div>
@@ -921,6 +1011,7 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
                 type="button"
                 variant="outline"
                 size="sm"
+                disabled={uploading}
                 onClick={() => setShareModalOpen(false)}
                 className="h-8 text-xs"
               >
@@ -929,9 +1020,10 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
               <Button
                 type="submit"
                 size="sm"
+                disabled={uploading}
                 className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
               >
-                Publish Resource
+                {uploading ? 'Publishing…' : 'Publish Resource'}
               </Button>
             </div>
           </form>

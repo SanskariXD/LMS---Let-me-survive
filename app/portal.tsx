@@ -31,6 +31,7 @@ import {
   CheckCircle,
   Plus,
   Trash2,
+  Users,
 } from 'lucide-react';
 import { getCurriculumCourse, auditDegreeProgress } from '@/lib/university/curriculum';
 
@@ -183,7 +184,7 @@ async function request(path: string, body?: object) {
   return data;
 }
 
-export default function Portal({ onLock }: { onLock: () => void }) {
+export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; onSwitchUser?: () => void }) {
   const [view, setView] = useState('overview');
   const [session, setSession] = useState<Session | null>(null);
   const [activeSemester, setActiveSemester] = useState('');
@@ -280,7 +281,7 @@ export default function Portal({ onLock }: { onLock: () => void }) {
   const [newCourseCredits, setNewCourseCredits] = useState('3');
   const [newCourseType, setNewCourseType] = useState('Theory');
 
-  // Load custom courses and tasks from localStorage on mount
+  // Load custom courses and tasks from localStorage and backend on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem('slotwise_manual_courses');
@@ -291,9 +292,30 @@ export default function Portal({ onLock }: { onLock: () => void }) {
       if (storedTasks) {
         setPortalTasks(JSON.parse(storedTasks));
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
+
+    // Fetch persistent manual courses from server
+    fetch('/api/user/manual-courses')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.courses) && data.courses.length > 0) {
+          const grouped: Record<string, any[]> = {};
+          data.courses.forEach((c: any) => {
+            if (!grouped[c.semester]) grouped[c.semester] = [];
+            grouped[c.semester].push({
+              course_code: c.course_code,
+              course_name: c.course_name,
+              credits: c.credits,
+              component_type: c.component_type,
+            });
+          });
+          setManualCourses((prev) => ({ ...prev, ...grouped }));
+          try {
+            localStorage.setItem('slotwise_manual_courses', JSON.stringify(grouped));
+          } catch {}
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const serial = useRef(0);
@@ -441,9 +463,21 @@ export default function Portal({ onLock }: { onLock: () => void }) {
     setManualCourses(updated);
     try {
       localStorage.setItem('slotwise_manual_courses', JSON.stringify(updated));
-    } catch {
-      // ignore
-    }
+    } catch {}
+
+    // Persist to server
+    fetch('/api/user/manual-courses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        courseCode: courseObj.course_code,
+        courseName: courseObj.course_name,
+        credits: courseObj.credits,
+        semester: activeAcademicsSemester,
+        componentType: courseObj.component_type,
+      }),
+    }).catch(() => {});
+
     setNewCourseCode('');
     setNewCourseName('');
     setNewCourseCredits('3');
@@ -460,9 +494,11 @@ export default function Portal({ onLock }: { onLock: () => void }) {
     setManualCourses(updated);
     try {
       localStorage.setItem('slotwise_manual_courses', JSON.stringify(updated));
-    } catch {
-      // ignore
-    }
+    } catch {}
+
+    fetch(`/api/user/manual-courses?code=${encodeURIComponent(code)}&semester=${encodeURIComponent(semKey)}`, {
+      method: 'DELETE',
+    }).catch(() => {});
   }
 
   // Recalculate audit with manual courses factored in
@@ -573,7 +609,12 @@ export default function Portal({ onLock }: { onLock: () => void }) {
 
   useEffect(() => {
     let live = true;
-    const studentId = 'A86605224188';
+    let activeEnrollment = '';
+    try {
+      const u = JSON.parse(localStorage.getItem('slotwise_device_user') || '{}');
+      if (u?.enrollment) activeEnrollment = u.enrollment;
+    } catch {}
+    const studentId = activeEnrollment || session?.user?.enrollment || 'A86605224188';
 
     // 1. Immediately restore cached snapshot if available so there is zero initial blank screen
     const snapshot = getUniversitySnapshot(studentId);
@@ -782,8 +823,8 @@ export default function Portal({ onLock }: { onLock: () => void }) {
     return c.attendance_percentage! < TARGET_THRESHOLD - 10;
   }).length;
 
-  const formattedFullName = formatName(session?.user.name || 'Anjan Shetty C');
-  const firstName = formattedFullName.split(' ')[0] || 'Anjan';
+  const formattedFullName = formatName(session?.user.name || 'Student');
+  const firstName = formattedFullName.split(' ')[0] || 'Student';
 
   // Course list formatted for Tasks & Resource Hub filters
   const enrolledCourseList = useMemo(() => {
@@ -1016,18 +1057,28 @@ export default function Portal({ onLock }: { onLock: () => void }) {
                 {session?.user.program || 'B.Tech CSE'}
               </span>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => {
-                clearUniversitySnapshot(session?.user.enrollment || 'A86605224188');
-                onLock();
-              }}
-              title="Lock Portal"
-              className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 flex-shrink-0"
-            >
-              <LockKeyhole size={14} />
-            </Button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {onSwitchUser && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={onSwitchUser}
+                  title="Switch Account / Sign Out"
+                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                >
+                  <Users size={14} />
+                </Button>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onLock}
+                title="Lock Portal"
+                className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/50"
+              >
+                <LockKeyhole size={14} />
+              </Button>
+            </div>
           </div>
           <div className="mt-3 text-[10px] text-center font-medium text-slate-400 border-t border-slate-200/60 pt-2 flex items-center justify-center gap-1">
             <span>Made with</span>
@@ -2201,6 +2252,7 @@ export default function Portal({ onLock }: { onLock: () => void }) {
               language={language}
               onRefreshData={refresh}
               onNavigateView={(targetView) => setView(targetView as any)}
+              onSwitchUser={onSwitchUser}
             />
           )}
 
