@@ -973,11 +973,11 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       {/* Sleek Sidebar */}
       <Sidebar className="bg-white border-r border-slate-200/80" collapsible="offcanvas">
         <SidebarHeader className="px-4 py-3 border-b border-slate-100/80 flex items-center justify-center">
-          <a href="/portal" className="w-full flex items-center justify-center no-underline py-1">
+          <a href="/portal" className="w-full flex items-center justify-center no-underline py-1.5 px-1">
             <img
               src="/logo.png"
               alt="LMS² — Let Me Survive"
-              className="w-auto h-11 max-h-12 object-contain"
+              className="w-full max-w-[210px] h-auto max-h-16 object-contain"
             />
           </a>
         </SidebarHeader>

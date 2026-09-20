@@ -271,32 +271,32 @@ export default function PortalGate() {
   }
 
   return (
-    <main className="min-h-screen w-full bg-[#edeaf7] sm:bg-[#f3f0fb] flex items-center justify-center p-2 sm:p-6 lg:p-10 font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Outer Card Container with modern rounded edges and soft glow */}
-      <div className="w-full max-w-5xl bg-white rounded-2xl sm:rounded-[36px] shadow-[0_25px_70px_-15px_rgba(99,102,241,0.18)] border border-indigo-100/60 flex flex-col md:flex-row overflow-hidden relative">
+    <main className="min-h-screen w-full bg-[#edeaf7] sm:bg-[#f3f0fb] flex items-center justify-center p-2 sm:p-4 lg:p-8 font-sans selection:bg-indigo-500 selection:text-white">
+      {/* Outer Card Container with modern rounded edges and expansive layout */}
+      <div className="w-full max-w-6xl xl:max-w-7xl bg-white rounded-2xl sm:rounded-[36px] shadow-[0_25px_70px_-15px_rgba(99,102,241,0.20)] border border-indigo-100/70 flex flex-col md:flex-row overflow-hidden relative min-h-[640px] lg:min-h-[700px]">
         
         {/* Mobile Cute Top Banner */}
-        <div className="md:hidden relative w-full h-44 sm:h-52 bg-slate-900 overflow-hidden">
+        <div className="md:hidden relative w-full h-56 sm:h-64 bg-slate-900 overflow-hidden">
           <img 
             src="/cat-study.jpg" 
             alt="LMS² Study Cat" 
-            className="w-full h-full object-cover opacity-90"
+            className="w-full h-full object-cover object-center opacity-95"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/30" />
           <div className="absolute top-4 left-4">
-            <img src="/logo.png" alt="LMS²" className="h-9 w-auto object-contain drop-shadow-md brightness-110" />
+            <img src="/logo.png" alt="LMS²" className="h-12 sm:h-14 w-auto object-contain drop-shadow-lg brightness-110" />
           </div>
         </div>
 
         {/* LEFT PANEL: Clean Modern Login Card */}
-        <div className="w-full md:w-[460px] lg:w-[490px] flex-shrink-0 flex flex-col justify-between p-6 sm:p-10 lg:p-12 bg-white relative z-10">
+        <div className="w-full md:w-[440px] lg:w-[470px] flex-shrink-0 flex flex-col justify-between p-6 sm:p-8 lg:p-10 bg-white relative z-10">
           
           {/* Top Branding (Desktop) */}
           <div className="hidden md:block">
             <img 
               src="/logo.png" 
               alt="LMS² — Let Me Survive" 
-              className="h-11 sm:h-13 w-auto object-contain"
+              className="h-14 sm:h-16 lg:h-18 max-w-[320px] w-auto object-contain"
             />
           </div>
 
@@ -304,7 +304,7 @@ export default function PortalGate() {
           <div className="my-auto py-2 sm:py-4">
             {mode === 'connect' ? (
               /* UNIVERSITY CREDENTIALS MODE */
-              <div className="space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
+              <div className="space-y-5 animate-in fade-in slide-in-from-left-2 duration-300">
                 <div>
                   <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-extrabold text-[#111827] tracking-tight">
                     Welcome back
@@ -555,15 +555,15 @@ export default function PortalGate() {
         </div>
 
         {/* RIGHT PANEL: Gorgeous Illustration Display (Desktop / Tablet) */}
-        <div className="hidden md:flex flex-1 relative bg-gradient-to-br from-indigo-50/60 via-purple-50/40 to-pink-50/30 items-center justify-center p-6 lg:p-8 overflow-hidden">
-          <div className="relative w-full h-full max-h-[580px] rounded-[28px] overflow-hidden shadow-2xl shadow-indigo-500/10 border border-indigo-100/60 group">
+        <div className="hidden md:flex flex-1 relative bg-gradient-to-br from-indigo-50/70 via-purple-50/50 to-pink-50/40 items-center justify-center p-3 lg:p-4 overflow-hidden">
+          <div className="relative w-full h-full min-h-[580px] lg:min-h-[660px] rounded-[30px] overflow-hidden shadow-2xl shadow-indigo-500/15 border border-indigo-100/80 group">
             <img 
               src="/cat-study.jpg" 
               alt="LMS² Study Cat at Desk" 
-              className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700 ease-out"
+              className="w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-700 ease-out"
             />
             {/* Soft subtle gradient vignette */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/15 via-transparent to-transparent pointer-events-none" />
           </div>
         </div>
 
