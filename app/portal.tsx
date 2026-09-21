@@ -224,9 +224,9 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     { id: 'attendance', label: t.navAttendance, icon: ChartNoAxesCombined },
     { id: 'marks', label: t.navMarks, icon: Award },
     { id: 'timetable', label: t.navTimetable, icon: CalendarDays },
-    { id: 'academics', label: t.navAcademics, icon: GraduationCap },
+    { id: 'academics', label: t.navAcademics, icon: GraduationCap, badge: 'Beta' },
     { id: 'tasks', label: t.navTasks, icon: SquareCheckBig },
-    { id: 'resources', label: t.navResources, icon: BookOpen },
+    { id: 'resources', label: t.navResources, icon: BookOpen, badge: 'Beta' },
     { id: 'profile', label: t.navProfile, icon: User },
   ], [t]);
 
@@ -988,7 +988,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
             {activeNavigation.map((n) => (
               <SidebarMenuItem key={n.id}>
                 <SidebarMenuButton
-                  className={`h-10 px-3 rounded-xl font-medium text-xs transition-colors flex items-center gap-3 ${
+                  className={`h-10 px-3 rounded-xl font-medium text-xs transition-colors flex items-center justify-between ${
                     view === n.id
                       ? 'bg-indigo-50 text-indigo-600 font-semibold'
                       : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
@@ -996,8 +996,15 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                   isActive={view === n.id}
                   onClick={() => setView(n.id)}
                 >
-                  <n.icon className={`w-4 h-4 ${view === n.id ? 'text-indigo-600' : 'text-slate-400'}`} />
-                  <span>{n.label}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <n.icon className={`w-4 h-4 flex-shrink-0 ${view === n.id ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    <span className="truncate">{n.label}</span>
+                  </div>
+                  {n.badge && (
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-indigo-100/80 text-indigo-700 tracking-wider uppercase font-mono">
+                      {n.badge}
+                    </span>
+                  )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
