@@ -259,21 +259,26 @@ export default function PortalGate() {
     }
   }
 
-  // Lock portal (keeps device PIN user)
-  async function handleLock() {
+  // Sign out / lock: Terminates session but keeps recognized device user so Fast PIN Login is shown
+  async function handleSignOut() {
     try {
       await fetch('/api/portal/logout', { method: 'POST' });
     } catch (err) {
-      console.error('[Portal] Lock failed:', err);
+      console.error('[Portal] Sign out error:', err);
     }
     setUnlocked(false);
     setPin('');
     setPinError('');
-    if (deviceUser) setMode('pin');
+    // Automatically default returning user to fast PIN login
+    if (deviceUser) {
+      setMode('pin');
+    } else {
+      setMode('connect');
+    }
   }
 
-  // Full switch user / sign out
-  async function handleSwitchUser() {
+  // Explicitly clear device (used when clicking "Not you? Use another account")
+  async function handleClearDevice() {
     try {
       await fetch('/api/portal/logout?clearDevice=true', { method: 'POST' });
     } catch {}
@@ -310,8 +315,8 @@ export default function PortalGate() {
   if (unlocked) {
     return (
       <Portal
-        onLock={handleLock}
-        onSwitchUser={handleSwitchUser}
+        onLock={handleSignOut}
+        onSwitchUser={handleSignOut}
       />
     );
   }
@@ -440,28 +445,31 @@ export default function PortalGate() {
                   </button>
                 </form>
 
-                {/* Divider */}
-                <div className="relative my-4 flex items-center justify-center">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-200/90" />
-                  </div>
-                  <span className="relative bg-white px-3 text-xs uppercase tracking-widest text-slate-400 font-medium">
-                    or
-                  </span>
-                </div>
+                {/* PIN Login Button — ONLY displayed if deviceUser is recognized, never for new users */}
+                {deviceUser && (
+                  <>
+                    <div className="relative my-4 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-200/90" />
+                      </div>
+                      <span className="relative bg-white px-3 text-xs uppercase tracking-widest text-slate-400 font-medium">
+                        or
+                      </span>
+                    </div>
 
-                {/* Secondary PIN Login Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('pin');
-                    setPinError('');
-                  }}
-                  className="w-full py-3 px-6 rounded-2xl bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 active:scale-[0.99] text-slate-700 font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <QrCode size={17} className="text-indigo-600" />
-                  <span>Login with PIN</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('pin');
+                        setPinError('');
+                      }}
+                      className="w-full py-3 px-6 rounded-2xl bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 active:scale-[0.99] text-slate-700 font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Sparkles size={16} className="text-indigo-600" />
+                      <span>Unlock with PIN instead</span>
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               /* PIN LOGIN / QUICK UNLOCK MODE */
@@ -583,10 +591,10 @@ export default function PortalGate() {
                   {deviceUser && (
                     <button
                       type="button"
-                      onClick={handleSwitchUser}
+                      onClick={handleClearDevice}
                       className="w-full py-2 text-xs text-slate-400 hover:text-rose-500 font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Users size={13} /> Switch Account / Clear Device
+                      <Users size={13} /> Not {deviceUser.name ? deviceUser.name.split(' ')[0] : 'you'}? Sign in with another account
                     </button>
                   )}
                 </div>
