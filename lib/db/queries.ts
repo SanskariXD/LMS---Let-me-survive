@@ -1,4 +1,4 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, or, desc } from 'drizzle-orm';
 import { db, ensureDbInitialized } from '@/db';
 import * as schema from '@/db/schema';
 import { randomUUID } from 'node:crypto';
@@ -13,9 +13,19 @@ export async function getUserById(id: string) {
   return rows[0] || null;
 }
 
-export async function getUserByEnrollment(enrollmentNumber: string) {
+export async function getUserByEnrollment(enrollmentOrEmail: string) {
   await ensureDbInitialized();
-  const rows = await db.select().from(schema.users).where(eq(schema.users.enrollment_number, enrollmentNumber.trim())).limit(1);
+  if (!enrollmentOrEmail) return null;
+  const raw = enrollmentOrEmail.trim();
+  const cleanEnrollment = raw.split('@')[0].trim();
+
+  const rows = await db.select().from(schema.users).where(
+    or(
+      eq(schema.users.enrollment_number, cleanEnrollment),
+      eq(schema.users.enrollment_number, raw),
+      eq(schema.users.email, raw)
+    )
+  ).limit(1);
   return rows[0] || null;
 }
 

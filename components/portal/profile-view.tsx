@@ -275,9 +275,9 @@ export function ProfileView({
     .split(' ')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
-  const email = session?.user.username?.includes('@')
+  const email = session?.user.username?.includes('@') && !session.user.username.endsWith('@blr.amity.edu')
     ? session.user.username
-    : `${studentId}@blr.amity.edu`;
+    : `${studentId.split('@')[0]}@s.amity.edu`;
   const program = session?.user.program || 'B.Tech. (CSE)';
   const currentSemesterLabel = session?.currentSemester
     ? `${session.currentSemester.semester_type} ${session.currentSemester.slot_year}`

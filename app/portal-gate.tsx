@@ -5,7 +5,6 @@ import {
   ArrowRight, 
   KeyRound, 
   Lock, 
-  LockKeyhole, 
   Mail, 
   Eye, 
   EyeOff, 
@@ -15,7 +14,6 @@ import {
   Users, 
   LogIn, 
   Sparkles, 
-  HelpCircle,
   QrCode,
   GraduationCap
 } from 'lucide-react';
@@ -85,20 +83,19 @@ export default function PortalGate() {
   const [currentUser, setCurrentUser] = useState<DeviceUser | null>(null);
   const [deviceUser, setDeviceUser] = useState<DeviceUser | null>(null);
 
-  // Form mode: 'connect' (university credentials) or 'pin' (quick unlock)
+  // Form mode: 'connect' (university password) or 'pin' (6-digit PIN)
   const [mode, setMode] = useState<'connect' | 'pin'>('connect');
 
-  // Credentials Form State
+  // Password Form State
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [setupPin, setSetupPin] = useState('');
-  const [showPinSetup, setShowPinSetup] = useState(false);
   const [connectError, setConnectError] = useState('');
   const [connectSubmitting, setConnectSubmitting] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
 
   // PIN Form State
+  const [pinEnrollment, setPinEnrollment] = useState('');
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
   const [pinSubmitting, setPinSubmitting] = useState(false);
@@ -111,9 +108,10 @@ export default function PortalGate() {
       const stored = localStorage.getItem('slotwise_device_user');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed?.id) {
+        if (parsed?.id && parsed?.enrollment) {
           setDeviceUser(parsed);
-          setMode('pin'); // Default to quick PIN unlock for returning users
+          setPinEnrollment(parsed.enrollment);
+          setMode('pin'); // Default to quick PIN unlock for recognized device
         }
       }
     } catch {}
@@ -134,6 +132,7 @@ export default function PortalGate() {
           if (data.user) {
             setCurrentUser(data.user);
             setDeviceUser(data.user);
+            setPinEnrollment(data.user.enrollment);
             localStorage.setItem('slotwise_device_user', JSON.stringify(data.user));
             triggerLegacyDataMigration(data.user.id);
           }
@@ -147,17 +146,24 @@ export default function PortalGate() {
     return () => { live = false; };
   }, []);
 
-  // Handle Quick PIN Unlock
+  // Handle Quick PIN Unlock / PIN Login
   async function handlePinUnlock(event: React.FormEvent) {
     event.preventDefault();
     if (pinSubmitting || pin.length !== 6) return;
+    
+    const targetEnrollment = deviceUser?.enrollment || pinEnrollment.trim();
+    if (!targetEnrollment) {
+      setPinError('Please enter your University ID or Email.');
+      return;
+    }
+
     setPinSubmitting(true);
     setPinError('');
 
     try {
       const body: Record<string, any> = { pin };
       if (deviceUser?.id) body.userId = deviceUser.id;
-      if (deviceUser?.enrollment) body.enrollment = deviceUser.enrollment;
+      body.enrollment = targetEnrollment;
 
       const response = await fetch('/api/portal/login', {
         method: 'POST',
@@ -173,7 +179,7 @@ export default function PortalGate() {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Incorrect PIN. Try again or login with credentials.');
+        throw new Error(data.error || 'Incorrect PIN. Try again or login with password.');
       }
 
       setPin('');
@@ -181,6 +187,7 @@ export default function PortalGate() {
       if (data.user) {
         setCurrentUser(data.user);
         setDeviceUser(data.user);
+        setPinEnrollment(data.user.enrollment);
         localStorage.setItem('slotwise_device_user', JSON.stringify(data.user));
         triggerLegacyDataMigration(data.user.id);
       }
@@ -206,7 +213,6 @@ export default function PortalGate() {
         body: JSON.stringify({
           username: username.trim(),
           password,
-          pin: setupPin.length === 6 ? setupPin : undefined,
         }),
       });
 
@@ -225,6 +231,7 @@ export default function PortalGate() {
       if (data.user) {
         setCurrentUser(data.user);
         setDeviceUser(data.user);
+        setPinEnrollment(data.user.enrollment);
         localStorage.setItem('slotwise_device_user', JSON.stringify(data.user));
         triggerLegacyDataMigration(data.user.id);
       }
@@ -258,9 +265,9 @@ export default function PortalGate() {
     setCurrentUser(null);
     setUnlocked(false);
     setPin('');
+    setPinEnrollment('');
     setUsername('');
     setPassword('');
-    setSetupPin('');
     setMode('connect');
   }
 
@@ -295,7 +302,7 @@ export default function PortalGate() {
       <div className="w-full max-w-6xl xl:max-w-7xl bg-white rounded-2xl sm:rounded-[36px] shadow-[0_25px_70px_-15px_rgba(99,102,241,0.20)] border border-indigo-100/70 flex flex-col md:flex-row overflow-hidden relative min-h-[640px] lg:min-h-[700px]">
         
         {/* Mobile Cute Top Banner */}
-        <div className="md:hidden relative w-full h-56 sm:h-64 bg-slate-900 overflow-hidden">
+        <div className="md:hidden relative w-full h-52 sm:h-60 bg-slate-900 overflow-hidden">
           <img 
             src="/cat-study.jpg" 
             alt="LMS² Study Cat" 
@@ -322,7 +329,7 @@ export default function PortalGate() {
           {/* Form Content */}
           <div className="my-auto py-2 sm:py-4">
             {mode === 'connect' ? (
-              /* UNIVERSITY CREDENTIALS MODE */
+              /* UNIVERSITY PASSWORD MODE */
               <div className="space-y-5 animate-in fade-in slide-in-from-left-2 duration-300">
                 <div>
                   <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-extrabold text-[#111827] tracking-tight">
@@ -366,7 +373,7 @@ export default function PortalGate() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 text-slate-400 hover:text-indigo-600 transition-colors p-1"
+                        className="absolute right-3.5 text-slate-400 hover:text-indigo-600 transition-colors p-1 cursor-pointer"
                         tabIndex={-1}
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                       >
@@ -375,47 +382,12 @@ export default function PortalGate() {
                     </div>
                   </div>
 
-                  {/* Optional Quick Unlock PIN Setup Accordion */}
-                  <div className="pt-1">
-                    {!showPinSetup ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowPinSetup(true)}
-                        className="text-[11px] text-slate-400 hover:text-indigo-600 font-medium transition-colors flex items-center gap-1"
-                      >
-                        <KeyRound size={12} /> Set up a 6-digit device PIN for quick unlock
-                      </button>
-                    ) : (
-                      <div className="p-3 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-2 animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold text-indigo-900">Set 6-Digit Device PIN</label>
-                          <button
-                            type="button"
-                            onClick={() => { setShowPinSetup(false); setSetupPin(''); }}
-                            className="text-[11px] text-slate-400 hover:text-slate-600"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                        <input
-                          type="password"
-                          maxLength={6}
-                          placeholder="e.g. 123456"
-                          value={setupPin}
-                          onChange={(e) => setSetupPin(e.target.value.replace(/\D/g, ''))}
-                          disabled={connectSubmitting}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-indigo-200 text-slate-800 placeholder:text-slate-400 text-sm font-mono tracking-widest focus:outline-none focus:border-indigo-500"
-                        />
-                      </div>
-                    )}
-                  </div>
-
                   {/* Forgot Password Link */}
                   <div className="flex items-center justify-between pt-0.5">
                     <button
                       type="button"
                       onClick={() => setShowHelpDialog(true)}
-                      className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold transition-colors"
+                      className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold transition-colors cursor-pointer"
                     >
                       Forgot password?
                     </button>
@@ -461,7 +433,10 @@ export default function PortalGate() {
                 {/* Secondary PIN Login Button */}
                 <button
                   type="button"
-                  onClick={() => setMode('pin')}
+                  onClick={() => {
+                    setMode('pin');
+                    setPinError('');
+                  }}
                   className="w-full py-3 px-6 rounded-2xl bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 active:scale-[0.99] text-slate-700 font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <QrCode size={17} className="text-indigo-600" />
@@ -469,22 +444,41 @@ export default function PortalGate() {
                 </button>
               </div>
             ) : (
-              /* QUICK PIN UNLOCK MODE */
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
+              /* PIN LOGIN / QUICK UNLOCK MODE */
+              <div className="space-y-5 animate-in fade-in slide-in-from-right-2 duration-300">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-100/80 text-indigo-700 text-xs font-semibold mb-2">
-                    <Sparkles size={12} /> Fast Device Unlock
+                    <Sparkles size={12} /> {deviceUser ? 'Fast Device Unlock' : 'PIN Unlock'}
                   </div>
                   <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-extrabold text-[#111827] tracking-tight">
-                    {deviceUser?.name ? `Welcome back, ${deviceUser.name.split(' ')[0]}` : 'Enter your PIN'}
+                    {deviceUser?.name ? `Welcome back, ${deviceUser.name.split(' ')[0]}` : 'Login with PIN'}
                   </h1>
                   <p className="text-slate-500 font-medium text-xs sm:text-sm mt-1">
-                    {deviceUser?.enrollment || 'Enter your 6-digit portal PIN to unlock.'}
+                    {deviceUser?.enrollment || 'Enter your University ID and 6-digit PIN.'}
                   </p>
                 </div>
 
-                <form onSubmit={handlePinUnlock} className="space-y-5">
-                  <div className="flex justify-center py-2">
+                <form onSubmit={handlePinUnlock} className="space-y-4">
+                  {/* If no deviceUser is stored, prompt for University ID / Email */}
+                  {!deviceUser && (
+                    <div className="space-y-1.5">
+                      <div className="relative flex items-center rounded-2xl bg-[#f7f6fc] border border-indigo-100/80 focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
+                        <Mail className="w-5 h-5 text-indigo-400/90 ml-4 flex-shrink-0" />
+                        <input
+                          type="text"
+                          required
+                          placeholder="University ID (e.g. A86605224188)"
+                          value={pinEnrollment}
+                          onChange={(e) => setPinEnrollment(e.target.value)}
+                          disabled={pinSubmitting}
+                          className="w-full py-3.5 pl-3 pr-4 bg-transparent text-slate-800 placeholder:text-slate-400 text-sm font-medium focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 6-Digit OTP Slots */}
+                  <div className="flex justify-center py-1">
                     <InputOTP
                       maxLength={6}
                       inputMode="numeric"
@@ -515,7 +509,7 @@ export default function PortalGate() {
 
                   <button
                     type="submit"
-                    disabled={pinSubmitting || pin.length !== 6}
+                    disabled={pinSubmitting || pin.length !== 6 || (!deviceUser && !pinEnrollment.trim())}
                     className="w-full py-3.5 px-6 rounded-2xl bg-[#1e2538] hover:bg-[#121724] active:scale-[0.99] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {pinSubmitting ? (
@@ -525,7 +519,7 @@ export default function PortalGate() {
                       </>
                     ) : (
                       <>
-                        <span>Unlock Portal</span>
+                        <span>Unlock with PIN</span>
                         <ArrowRight size={16} />
                       </>
                     )}
@@ -533,7 +527,7 @@ export default function PortalGate() {
                 </form>
 
                 {/* Divider */}
-                <div className="relative my-4 flex items-center justify-center">
+                <div className="relative my-3 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-slate-200/90" />
                   </div>
@@ -545,20 +539,25 @@ export default function PortalGate() {
                 <div className="space-y-2">
                   <button
                     type="button"
-                    onClick={() => setMode('connect')}
+                    onClick={() => {
+                      setMode('connect');
+                      setConnectError('');
+                    }}
                     className="w-full py-3 px-6 rounded-2xl bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 active:scale-[0.99] text-slate-700 font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <LogIn size={16} className="text-indigo-600" />
-                    <span>Login with University Credentials</span>
+                    <span>Login with University Password</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={handleSwitchUser}
-                    className="w-full py-2 text-xs text-slate-400 hover:text-rose-500 font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Users size={13} /> Switch Account / Clear Device
-                  </button>
+                  {deviceUser && (
+                    <button
+                      type="button"
+                      onClick={handleSwitchUser}
+                      className="w-full py-2 text-xs text-slate-400 hover:text-rose-500 font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Users size={13} /> Switch Account / Clear Device
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -611,8 +610,8 @@ export default function PortalGate() {
               <p className="text-slate-500">Your official Amizone password. If forgotten, reset it via the university Amizone portal or contact your campus IT department.</p>
             </div>
             <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-1">
-              <p className="font-semibold text-indigo-900">3. Fast Quick Unlock</p>
-              <p className="text-indigo-700">Once connected, you can use a 6-digit PIN on this device to unlock instantly without retyping your password.</p>
+              <p className="font-semibold text-indigo-900">3. Fast PIN Login</p>
+              <p className="text-indigo-700">Set a 6-digit PIN in your Profile tab once logged in to quickly unlock on any device without entering your full password each time.</p>
             </div>
           </div>
 

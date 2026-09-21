@@ -23,15 +23,22 @@ export async function POST(request: NextRequest) {
       const user = userId ? await getUserById(userId) : await getUserByEnrollment(enrollment);
       if (!user) {
         return NextResponse.json(
-          { error: 'User account not found on this device.', code: 'USER_NOT_FOUND' },
+          { error: 'Student account not found. Please login with your university password first.', code: 'USER_NOT_FOUND' },
           { status: 404 },
         );
       }
 
-      const valid = await verifyPin(pin, user.pin_hash || undefined);
+      if (!user.pin_hash) {
+        return NextResponse.json(
+          { error: 'No PIN is set for this account yet. Please login with your university password and set your 6-digit PIN in Profile.', code: 'NO_PIN_SET' },
+          { status: 400 },
+        );
+      }
+
+      const valid = await verifyPin(pin, user.pin_hash);
       if (!valid) {
         return NextResponse.json(
-          { error: 'Incorrect PIN. Please try again.', code: 'INVALID_PIN' },
+          { error: 'Incorrect PIN. Please check and try again.', code: 'INVALID_PIN' },
           { status: 401 },
         );
       }
@@ -48,6 +55,7 @@ export async function POST(request: NextRequest) {
           name: user.student_name,
           enrollment: user.enrollment_number,
           program: user.program_code,
+          hasPin: true,
         },
       });
     }

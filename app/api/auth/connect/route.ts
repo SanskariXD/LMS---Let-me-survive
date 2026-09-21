@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const user = await upsertUser({
       enrollmentNumber: studentEnrollment,
       studentName: fullName,
-      email: loginResult.user?.email || (username.includes('@') ? username : `${username}@blr.amity.edu`),
+      email: loginResult.user?.email || (username.includes('@') && !username.endsWith('@blr.amity.edu') ? username : `${studentEnrollment}@s.amity.edu`),
       programCode,
       yearAdmitted,
       pinHash,
