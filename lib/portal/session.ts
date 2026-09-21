@@ -32,6 +32,43 @@ export interface SessionPayload {
   expires: number;
 }
 
+export const REMEMBER_COOKIE_NAME = 'slotwise_device_user';
+const REMEMBER_DURATION = 365 * 24 * 60 * 60; // 1 year
+
+export async function setRememberedUser(data: { enrollment: string; name?: string; userId: string }): Promise<void> {
+  const cookieStore = await cookies();
+  const payload = Buffer.from(JSON.stringify(data)).toString('base64url');
+  cookieStore.set(REMEMBER_COOKIE_NAME, payload, {
+    httpOnly: false, // Accessible to client-side JS for instant rendering
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: REMEMBER_DURATION,
+  });
+}
+
+export async function getRememberedUser(): Promise<{ enrollment: string; name?: string; userId: string } | null> {
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get(REMEMBER_COOKIE_NAME);
+  if (!cookie?.value) return null;
+  try {
+    const raw = JSON.parse(Buffer.from(cookie.value, 'base64url').toString('utf-8'));
+    if (raw && typeof raw.enrollment === 'string') return raw;
+  } catch {}
+  return null;
+}
+
+export async function clearRememberedUser(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(REMEMBER_COOKIE_NAME, '', {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  });
+}
+
 export async function createSession(userId: string, metadata?: { enrollment?: string; name?: string }): Promise<void> {
   const expires = Math.floor(Date.now() / 1000) + SESSION_DURATION;
   const payloadData: SessionPayload = {
@@ -51,6 +88,15 @@ export async function createSession(userId: string, metadata?: { enrollment?: st
     path: '/',
     maxAge: SESSION_DURATION,
   });
+
+  // Automatically remember device user across sessions if enrollment is present
+  if (metadata?.enrollment) {
+    await setRememberedUser({
+      userId,
+      enrollment: metadata.enrollment,
+      name: metadata.name,
+    });
+  }
 }
 
 export async function clearSession(): Promise<void> {

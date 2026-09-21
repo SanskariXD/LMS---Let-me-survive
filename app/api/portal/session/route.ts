@@ -1,11 +1,28 @@
 import { NextResponse } from 'next/server';
-import { validateSession } from '@/lib/portal/session';
-import { getUserById } from '@/lib/db/queries';
+import { validateSession, getRememberedUser } from '@/lib/portal/session';
+import { getUserById, getUserByEnrollment } from '@/lib/db/queries';
 
 export async function GET() {
   try {
     const session = await validateSession();
     if (!session) {
+      // Check if user is remembered via persistent device cookie
+      const remembered = await getRememberedUser();
+      if (remembered?.enrollment) {
+        const user = (remembered.userId ? await getUserById(remembered.userId) : null) || await getUserByEnrollment(remembered.enrollment);
+        if (user) {
+          return NextResponse.json({
+            unlocked: false,
+            rememberedUser: {
+              id: user.id,
+              enrollment: user.enrollment_number,
+              name: user.student_name,
+              program: user.program_code,
+              hasPin: !!user.pin_hash,
+            },
+          });
+        }
+      }
       return NextResponse.json({ unlocked: false });
     }
 

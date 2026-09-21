@@ -23,9 +23,12 @@ import {
   Check,
   Sparkles,
   ExternalLink,
-  Flame,
   LockKeyhole,
   LogOut,
+  Eye,
+  EyeOff,
+  Plus,
+  KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +66,7 @@ interface ProfileViewProps {
   onRefreshData?: () => Promise<void>;
   onNavigateView?: (view: string) => void;
   onSwitchUser?: () => void;
+  onLock?: () => void;
 }
 
 export function ProfileView({
@@ -74,6 +78,7 @@ export function ProfileView({
   onRefreshData,
   onNavigateView,
   onSwitchUser,
+  onLock,
 }: ProfileViewProps) {
   // Preferences state (stored in localStorage & backend)
   const [prefAssignmentReminders, setPrefAssignmentReminders] = useState(true);
@@ -83,12 +88,32 @@ export function ProfileView({
   const [prefTheme, setPrefTheme] = useState<'system' | 'light' | 'dark'>('system');
 
   // PIN modal state
+  const [hasPin, setHasPin] = useState(false);
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [currentPinInput, setCurrentPinInput] = useState('');
   const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+  const [showCurrentPin, setShowCurrentPin] = useState(false);
+  const [showNewPin, setShowNewPin] = useState(false);
+  const [showConfirmPin, setShowConfirmPin] = useState(false);
   const [pinSubmitting, setPinSubmitting] = useState(false);
   const [pinMessage, setPinMessage] = useState<string | null>(null);
   const [pinIsError, setPinIsError] = useState(false);
+
+  // Check whether PIN is set on mount
+  useEffect(() => {
+    if (session?.user && (session.user as any).hasPin !== undefined) {
+      setHasPin(Boolean((session.user as any).hasPin));
+    }
+    fetch('/api/user/pin')
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data?.hasPin === 'boolean') {
+          setHasPin(data.hasPin);
+        }
+      })
+      .catch(() => {});
+  }, [session]);
 
   // Offline status & Tasks count
   const [cacheTimestamp, setCacheTimestamp] = useState<string | null>(null);
@@ -235,6 +260,18 @@ export function ProfileView({
       return;
     }
 
+    if (newPinInput !== confirmPinInput) {
+      setPinIsError(true);
+      setPinMessage('New PIN and Confirm PIN do not match.');
+      return;
+    }
+
+    if (hasPin && currentPinInput.length !== 6) {
+      setPinIsError(true);
+      setPinMessage('Please enter your current 6-digit PIN.');
+      return;
+    }
+
     setPinSubmitting(true);
     setPinMessage(null);
 
@@ -243,7 +280,7 @@ export function ProfileView({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          currentPin: currentPinInput,
+          currentPin: hasPin ? currentPinInput : undefined,
           newPin: newPinInput,
         }),
       });
@@ -252,12 +289,25 @@ export function ProfileView({
         throw new Error(data.error || 'Failed to update PIN');
       }
 
+      setHasPin(true);
       setPinIsError(false);
-      setPinMessage('PIN updated successfully!');
+      setPinMessage(data.message || (hasPin ? 'PIN changed successfully!' : 'PIN created successfully!'));
+
+      // Update cached device user to know PIN is set
+      try {
+        const stored = localStorage.getItem('slotwise_device_user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          parsed.hasPin = true;
+          localStorage.setItem('slotwise_device_user', JSON.stringify(parsed));
+        }
+      } catch {}
+
       setTimeout(() => {
         setPinModalOpen(false);
         setCurrentPinInput('');
         setNewPinInput('');
+        setConfirmPinInput('');
         setPinMessage(null);
       }, 1500);
     } catch (err: any) {
@@ -731,15 +781,50 @@ export function ProfileView({
             </div>
 
             <div className="space-y-2 pt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setPinModalOpen(true)}
-                className="w-full h-9 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <LockKeyhole size={13} />
-                <span>Change 6-Digit PIN</span>
-              </Button>
+              {hasPin ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setPinModalOpen(true);
+                    setCurrentPinInput('');
+                    setNewPinInput('');
+                    setConfirmPinInput('');
+                    setPinMessage(null);
+                  }}
+                  className="w-full h-9 text-xs font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50/50 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <KeyRound size={13} className="text-indigo-600" />
+                  <span>Change 6-Digit PIN</span>
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setPinModalOpen(true);
+                    setCurrentPinInput('');
+                    setNewPinInput('');
+                    setConfirmPinInput('');
+                    setPinMessage(null);
+                  }}
+                  className="w-full h-9 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Plus size={13} />
+                  <span>Set Up 6-Digit PIN</span>
+                </Button>
+              )}
+
+              {onLock && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onLock}
+                  className="w-full h-9 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <LockKeyhole size={13} />
+                  <span>Lock Portal (Fast PIN Unlock)</span>
+                </Button>
+              )}
 
               {onSwitchUser && (
                 <Button
@@ -758,43 +843,103 @@ export function ProfileView({
         </div>
       </div>
 
-      {/* CHANGE PIN DIALOG */}
+      {/* CHANGE / SET UP PIN DIALOG */}
       <Dialog open={pinModalOpen} onOpenChange={setPinModalOpen}>
         <DialogContent className="max-w-sm p-6 rounded-2xl bg-white">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
               <LockKeyhole size={18} className="text-indigo-600" />
-              <span>Change Portal PIN</span>
+              <span>{hasPin ? 'Change Portal PIN' : 'Set Up Portal PIN'}</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Set a 6-digit PIN for quick biometric/keypad unlock on this device.
+              {hasPin
+                ? 'Enter your current PIN and choose a new 6-digit PIN.'
+                : 'Set a 6-digit PIN for quick device unlock without entering your full university password.'}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleUpdatePin} className="space-y-4 mt-2">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700">Current PIN (if set)</label>
-              <Input
-                type="password"
-                maxLength={6}
-                placeholder="Current 6-digit PIN"
-                value={currentPinInput}
-                onChange={(e) => setCurrentPinInput(e.target.value.replace(/\D/g, ''))}
-                className="font-mono text-sm tracking-widest text-center"
-              />
-            </div>
+            {/* Current PIN: Only displayed if user has previously set a PIN */}
+            {hasPin && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700">Current 6-Digit PIN</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPin(!showCurrentPin)}
+                    className="text-[11px] text-slate-400 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    {showCurrentPin ? <EyeOff size={12} /> : <Eye size={12} />}
+                    <span>{showCurrentPin ? 'Hide' : 'Show'}</span>
+                  </button>
+                </div>
+                <Input
+                  type={showCurrentPin ? 'text' : 'password'}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  required
+                  placeholder="Enter current 6-digit PIN"
+                  value={currentPinInput}
+                  onChange={(e) => setCurrentPinInput(e.target.value.replace(/\D/g, ''))}
+                  className="font-mono text-sm tracking-widest text-center"
+                />
+              </div>
+            )}
 
+            {/* New PIN */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700">New 6-Digit PIN</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700">New 6-Digit PIN</label>
+                <button
+                  type="button"
+                  onClick={() => setShowNewPin(!showNewPin)}
+                  className="text-[11px] text-slate-400 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  {showNewPin ? <EyeOff size={12} /> : <Eye size={12} />}
+                  <span>{showNewPin ? 'Hide' : 'Show'}</span>
+                </button>
+              </div>
               <Input
-                type="password"
+                type={showNewPin ? 'text' : 'password'}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={6}
                 required
-                placeholder="New 6-digit PIN"
+                placeholder="Choose 6-digit PIN"
                 value={newPinInput}
                 onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, ''))}
                 className="font-mono text-sm tracking-widest text-center"
               />
+            </div>
+
+            {/* Confirm New PIN */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700">Confirm 6-Digit PIN</label>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPin(!showConfirmPin)}
+                  className="text-[11px] text-slate-400 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  {showConfirmPin ? <EyeOff size={12} /> : <Eye size={12} />}
+                  <span>{showConfirmPin ? 'Hide' : 'Show'}</span>
+                </button>
+              </div>
+              <Input
+                type={showConfirmPin ? 'text' : 'password'}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                required
+                placeholder="Re-enter 6-digit PIN"
+                value={confirmPinInput}
+                onChange={(e) => setConfirmPinInput(e.target.value.replace(/\D/g, ''))}
+                className="font-mono text-sm tracking-widest text-center"
+              />
+              {confirmPinInput.length > 0 && newPinInput !== confirmPinInput && (
+                <p className="text-[11px] text-rose-500 font-medium pt-0.5">PINs do not match</p>
+              )}
             </div>
 
             {pinMessage && (
@@ -823,10 +968,16 @@ export function ProfileView({
               <Button
                 type="submit"
                 size="sm"
-                disabled={pinSubmitting || newPinInput.length !== 6}
+                disabled={
+                  pinSubmitting ||
+                  newPinInput.length !== 6 ||
+                  confirmPinInput.length !== 6 ||
+                  newPinInput !== confirmPinInput ||
+                  (hasPin && currentPinInput.length !== 6)
+                }
                 className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
               >
-                {pinSubmitting ? 'Updating…' : 'Save PIN'}
+                {pinSubmitting ? 'Saving…' : hasPin ? 'Update PIN' : 'Set PIN'}
               </Button>
             </div>
           </form>

@@ -2260,6 +2260,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
               onRefreshData={refresh}
               onNavigateView={(targetView) => setView(targetView as any)}
               onSwitchUser={onSwitchUser}
+              onLock={onLock}
             />
           )}
 

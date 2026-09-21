@@ -97,21 +97,32 @@ export default function PortalGate() {
   // PIN Form State
   const [pinEnrollment, setPinEnrollment] = useState('');
   const [pin, setPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
   const [pinError, setPinError] = useState('');
   const [pinSubmitting, setPinSubmitting] = useState(false);
 
   useEffect(() => {
     let live = true;
 
-    // Check remembered device user
+    // Check remembered device user (from localStorage or persistent cookie)
     try {
-      const stored = localStorage.getItem('slotwise_device_user');
+      let stored = localStorage.getItem('slotwise_device_user');
+      if (!stored && typeof document !== 'undefined') {
+        const match = document.cookie.match(/(^|;\s*)slotwise_device_user=([^;]*)/);
+        if (match?.[2]) {
+          try {
+            stored = atob(decodeURIComponent(match[2]).replace(/-/g, '+').replace(/_/g, '/'));
+          } catch {
+            stored = decodeURIComponent(match[2]);
+          }
+        }
+      }
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed?.id && parsed?.enrollment) {
+        if (parsed?.enrollment) {
           setDeviceUser(parsed);
           setPinEnrollment(parsed.enrollment);
-          setMode('pin'); // Default to quick PIN unlock for recognized device
+          setMode('pin'); // Default directly to quick PIN unlock for recognized device
         }
       }
     } catch {}
@@ -136,6 +147,12 @@ export default function PortalGate() {
             localStorage.setItem('slotwise_device_user', JSON.stringify(data.user));
             triggerLegacyDataMigration(data.user.id);
           }
+        } else if (live && data?.rememberedUser) {
+          // Device recognized by server from persistent cookie & verified in DB
+          setDeviceUser(data.rememberedUser);
+          setPinEnrollment(data.rememberedUser.enrollment);
+          setMode('pin');
+          localStorage.setItem('slotwise_device_user', JSON.stringify(data.rememberedUser));
         }
       })
       .catch(() => {})
@@ -258,9 +275,12 @@ export default function PortalGate() {
   // Full switch user / sign out
   async function handleSwitchUser() {
     try {
-      await fetch('/api/portal/logout', { method: 'POST' });
+      await fetch('/api/portal/logout?clearDevice=true', { method: 'POST' });
     } catch {}
     localStorage.removeItem('slotwise_device_user');
+    if (typeof document !== 'undefined') {
+      document.cookie = 'slotwise_device_user=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    }
     setDeviceUser(null);
     setCurrentUser(null);
     setUnlocked(false);
@@ -478,7 +498,7 @@ export default function PortalGate() {
                   )}
 
                   {/* 6-Digit OTP Slots */}
-                  <div className="flex justify-center py-1">
+                  <div className="flex flex-col items-center gap-2 py-1">
                     <InputOTP
                       maxLength={6}
                       inputMode="numeric"
@@ -494,12 +514,22 @@ export default function PortalGate() {
                           <InputOTPSlot
                             key={index}
                             index={index}
-                            masked
+                            masked={!showPin}
                             className="w-11 h-14 sm:w-12 sm:h-14 text-xl font-bold border-indigo-100 bg-[#f7f6fc] text-indigo-950 rounded-2xl focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/15 transition-all shadow-sm"
                           />
                         ))}
                       </InputOTPGroup>
                     </InputOTP>
+
+                    {/* Show/Hide PIN toggle button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="text-xs text-slate-500 hover:text-indigo-600 font-medium flex items-center gap-1.5 transition-colors pt-1 cursor-pointer"
+                    >
+                      {showPin ? <EyeOff size={14} /> : <Eye size={14} />}
+                      <span>{showPin ? 'Hide PIN' : 'Show PIN'}</span>
+                    </button>
                   </div>
 
                   {pinError && (
