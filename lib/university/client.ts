@@ -63,7 +63,7 @@ export async function getValidTokenForUser(userId?: string): Promise<string> {
   // Login with stored credentials
   const username = user.enrollment_number.includes('@')
     ? user.enrollment_number
-    : `${user.enrollment_number}@blr.amity.edu`;
+    : `${user.enrollment_number}@s.amity.edu`;
 
   const fresh = await loginToUniversity({
     username,
@@ -93,7 +93,7 @@ export async function universityRequest<T>(
   const token = await getValidTokenForUser(userId);
   const url = `${universityConfig.baseUrl}${path}`;
   const method = options?.method ?? 'GET';
-  const timeoutMs = options?.timeoutMs || 6000;
+  const timeoutMs = options?.timeoutMs || 12000;
 
   universityLog('REQUEST_START', { method, endpoint: path, userId: userId?.slice(0, 8) });
   const started = Date.now();

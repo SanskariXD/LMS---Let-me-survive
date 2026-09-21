@@ -6,7 +6,12 @@ const SESSION_DURATION = 30 * 24 * 60 * 60; // 30 days in seconds for persistent
 
 function getSecret(): string {
   const secret = process.env.SESSION_SECRET;
-  if (!secret) return 'slotwise-dev-fallback-secret-for-session-signing-at-least-32-chars';
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      throw new Error('SESSION_SECRET environment variable is required in production for session signing.');
+    }
+    return 'slotwise-dev-fallback-secret-for-session-signing-at-least-32-chars';
+  }
   return secret;
 }
 

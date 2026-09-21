@@ -321,7 +321,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   const serial = useRef(0);
 
   async function loadMarksSemesters() {
-    const studentId = session?.user?.enrollment || 'A86605224188';
+    const studentId = session?.user?.enrollment || 'student';
     try {
       setMarksLoading(true);
       setMarksError('');
@@ -352,7 +352,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   }
 
   async function loadMarksTimetable(slotYear: string, semesterType: string) {
-    const studentId = session?.user?.enrollment || 'A86605224188';
+    const studentId = session?.user?.enrollment || 'student';
     try {
       setMarksLoading(true);
       setMarksError('');
@@ -402,7 +402,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   }
 
   async function loadAcademicsData() {
-    const studentId = session?.user?.enrollment || 'A86605224188';
+    const studentId = session?.user?.enrollment || 'student';
     try {
       setAcademicsLoading(true);
       setAcademicsError('');
@@ -565,7 +565,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     setLoading(true);
     setError('');
     const [year, type] = semKey.split('|');
-    const studentId = session?.user?.enrollment || 'A86605224188';
+    const studentId = session?.user?.enrollment || 'student';
 
     try {
       const data = await request('attendance?' + new URLSearchParams({ slot_year: year, semester_type: type }));
@@ -614,7 +614,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       const u = JSON.parse(localStorage.getItem('slotwise_device_user') || '{}');
       if (u?.enrollment) activeEnrollment = u.enrollment;
     } catch {}
-    const studentId = activeEnrollment || session?.user?.enrollment || 'A86605224188';
+    const studentId = activeEnrollment || session?.user?.enrollment || 'student';
 
     // 1. Immediately restore cached snapshot if available so there is zero initial blank screen
     const snapshot = getUniversitySnapshot(studentId);
@@ -706,7 +706,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
           if (data?.courses && data.courses.length > 0) {
             setAttendanceItems(data.courses);
             setIsUsingSavedData(false);
-            saveUniversitySnapshot(session?.user?.enrollment || 'A86605224188', { attendanceItems: data.courses });
+            saveUniversitySnapshot(session?.user?.enrollment || 'student', { attendanceItems: data.courses });
           }
         })
         .catch((e: any) => {
@@ -719,7 +719,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   }, [activeSemester, session, isUsingSavedData]);
 
   async function refresh() {
-    const studentId = session?.user?.enrollment || 'A86605224188';
+    const studentId = session?.user?.enrollment || 'student';
     setLoading(true);
     setError('');
     try {

@@ -29,8 +29,18 @@ export async function verifyPin(pin: string, storedHash?: string): Promise<boole
 
 // AES-256-GCM encryption for storing university passwords securely
 function getEncryptionKey(): Buffer {
-  const secret = process.env.SESSION_SECRET || 'lms-default-encryption-secret-key-32b';
-  // Generate deterministic 32-byte key from SESSION_SECRET
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      throw new Error('SESSION_SECRET environment variable is required in production for encryption.');
+    }
+    // Dev-only fallback
+    console.warn('[Auth] Using dev-only encryption key. Set SESSION_SECRET for production.');
+    const devKey = Buffer.alloc(32);
+    Buffer.from('lms-dev-only-encryption-key-32b!', 'utf-8').copy(devKey, 0, 0, 32);
+    return devKey;
+  }
+  // Derive a proper 32-byte key from the secret
   const hash = Buffer.alloc(32);
   const source = Buffer.from(secret, 'utf-8');
   source.copy(hash, 0, 0, Math.min(source.length, 32));

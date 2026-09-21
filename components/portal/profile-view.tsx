@@ -98,7 +98,7 @@ export function ProfileView({
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
   const [copiedEnrollment, setCopiedEnrollment] = useState(false);
 
-  const studentId = session?.user.enrollment || 'A86605224188';
+  const studentId = session?.user?.enrollment || '';
   const t = translations[language];
 
   // Load preferences and offline status

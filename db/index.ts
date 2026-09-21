@@ -9,6 +9,7 @@ function getDatabaseUrl(): string {
   
   // On Vercel / AWS Lambda serverless execution, use writeable /tmp
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    console.warn('[DB] ⚠️  No TURSO_DATABASE_URL set. Using ephemeral /tmp/local.db — data will be lost on cold starts! Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in Vercel env vars for persistent storage.');
     return 'file:/tmp/local.db';
   }
   return 'file:local.db';
@@ -16,6 +17,8 @@ function getDatabaseUrl(): string {
 
 const dbUrl = getDatabaseUrl();
 const authToken = process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN;
+
+console.info(`[DB] Using database: ${dbUrl.startsWith('libsql://') || dbUrl.startsWith('https://') ? dbUrl.split('?')[0] : dbUrl}${authToken ? ' (authenticated)' : ''}`);
 
 const client = createClient({
   url: dbUrl,

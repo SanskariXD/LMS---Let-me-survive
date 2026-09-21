@@ -68,7 +68,10 @@ export async function GET(request: NextRequest) {
     const session = await validateSession();
     const userId = session?.userId || request.headers.get('x-user-id') || undefined;
     const dbUser = userId ? await getUserById(userId) : null;
-    const enrollment = dbUser?.enrollment_number || session?.enrollment || process.env.UNIVERSITY_STUDENT_ID || 'A86605224188';
+    const enrollment = dbUser?.enrollment_number || session?.enrollment || process.env.UNIVERSITY_STUDENT_ID || '';
+    if (!enrollment) {
+      return NextResponse.json({ error: 'Unauthorized or no enrollment found' }, { status: 401 });
+    }
 
     const [meProbe, semestersProbe, studentProbe, regStatusProbe, withdrawalProbe, slotsProbe, schoolsProbe, programsProbe] = await Promise.all([
       probe('auth/me', UNIVERSITY_ENDPOINTS.me, userId),
@@ -159,7 +162,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[Bootstrap] Error:', error);
     return NextResponse.json({
-      user: { name: 'Student', username: 'A86605224188', enrollment: 'A86605224188' },
+      user: { name: 'Student', username: 'student', enrollment: '' },
       semesters: DEFAULT_FALLBACK_SEMESTERS,
       currentSemester: DEFAULT_FALLBACK_SEMESTERS[0],
       profileAvailable: false,

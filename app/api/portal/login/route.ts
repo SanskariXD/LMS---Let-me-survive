@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPin } from '@/lib/portal/auth';
 import { createSession } from '@/lib/portal/session';
-import { getUserById, getUserByEnrollment, upsertUser } from '@/lib/db/queries';
-import { universityConfig } from '@/lib/university/config';
+import { getUserById, getUserByEnrollment } from '@/lib/db/queries';
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,38 +59,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Case 2: Dev fallback / default environment PIN verification
-    const valid = await verifyPin(pin);
-    if (!valid) {
-      return NextResponse.json(
-        { error: 'Incorrect PIN. Please try again.', code: 'INVALID_PIN' },
-        { status: 401 },
-      );
-    }
-
-    // Ensure default user exists
-    const defaultEnrollment = process.env.UNIVERSITY_STUDENT_ID || 'A86605224188';
-    const defaultUser = await upsertUser({
-      enrollmentNumber: defaultEnrollment,
-      studentName: 'Mr ANJAN SHETTY C',
-      email: `${defaultEnrollment}@blr.amity.edu`,
-      programCode: 'B.Tech. (CSE)',
-    });
-
-    await createSession(defaultUser.id, {
-      enrollment: defaultUser.enrollment_number,
-      name: defaultUser.student_name,
-    });
-
-    return NextResponse.json({
-      unlocked: true,
-      user: {
-        id: defaultUser.id,
-        name: defaultUser.student_name,
-        enrollment: defaultUser.enrollment_number,
-        program: defaultUser.program_code,
-      },
-    });
+    // No userId or enrollment provided — cannot identify user for PIN login
+    return NextResponse.json(
+      { error: 'Please provide your University ID to login with PIN.', code: 'MISSING_IDENTITY' },
+      { status: 400 },
+    );
   } catch (error) {
     console.error('[Portal] Login error:', error);
     return NextResponse.json(

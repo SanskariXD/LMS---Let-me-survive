@@ -10,7 +10,13 @@ async function verifySessionCookie(request: NextRequest): Promise<{ valid: boole
   const cookie = request.cookies.get(COOKIE_NAME);
   if (!cookie?.value) return { valid: false };
 
-  const secret = process.env.SESSION_SECRET || 'slotwise-dev-fallback-secret-for-session-signing-at-least-32-chars';
+  let secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      return { valid: false };
+    }
+    secret = 'slotwise-dev-fallback-secret-for-session-signing-at-least-32-chars';
+  }
 
   try {
     const [payload, signature] = cookie.value.split('.');

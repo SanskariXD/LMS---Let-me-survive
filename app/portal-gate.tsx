@@ -467,7 +467,7 @@ export default function PortalGate() {
                         <input
                           type="text"
                           required
-                          placeholder="University ID (e.g. A86605224188)"
+                          placeholder="University ID (e.g. A123456789)"
                           value={pinEnrollment}
                           onChange={(e) => setPinEnrollment(e.target.value)}
                           disabled={pinSubmitting}
@@ -494,6 +494,7 @@ export default function PortalGate() {
                           <InputOTPSlot
                             key={index}
                             index={index}
+                            masked
                             className="w-11 h-14 sm:w-12 sm:h-14 text-xl font-bold border-indigo-100 bg-[#f7f6fc] text-indigo-950 rounded-2xl focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/15 transition-all shadow-sm"
                           />
                         ))}

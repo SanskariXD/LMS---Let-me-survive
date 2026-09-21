@@ -4,6 +4,7 @@ import { UNIVERSITY_ENDPOINTS } from '@/lib/university/endpoints';
 import { normalizeAttendance } from '@/lib/university/normalize';
 import { validateSession } from '@/lib/portal/session';
 import { getUniversityCachedData, saveUniversityCachedData } from '@/lib/db/queries';
+import { ensureDbInitialized } from '@/db';
 
 export const preferredRegion = 'bom1';
 
@@ -32,9 +33,10 @@ export async function GET(request: NextRequest) {
     const courses = normalizeAttendance(data);
 
     if (userId && courses.length > 0) {
+      await ensureDbInitialized();
       saveUniversityCachedData(userId, {
         attendanceJson: JSON.stringify(courses),
-      }).catch(() => {});
+      }).catch((err) => console.warn('[Attendance] Cache save failed:', err));
     }
 
     return NextResponse.json({
@@ -42,24 +44,32 @@ export async function GET(request: NextRequest) {
       fetchedAt: new Date().toISOString(),
     });
   } catch (error: any) {
+    console.error('[Attendance] Fetch failed, attempting cache fallback:', error?.message);
+
     // Attempt database cache fallback
     if (userId) {
-      const cached = await getUniversityCachedData(userId);
-      if (cached?.attendance_json) {
-        try {
+      try {
+        await ensureDbInitialized();
+        const cached = await getUniversityCachedData(userId);
+        if (cached?.attendance_json) {
           const courses = JSON.parse(cached.attendance_json);
           return NextResponse.json({
             courses,
             isOffline: true,
             fetchedAt: new Date(cached.updated_at).toISOString(),
           });
-        } catch {}
+        }
+      } catch (cacheErr) {
+        console.error('[Attendance] Cache fallback also failed:', cacheErr);
       }
     }
 
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch attendance', isOffline: true },
-      { status: 502 },
-    );
+    // Return empty result with offline flag instead of 502
+    return NextResponse.json({
+      courses: [],
+      isOffline: true,
+      error: error?.message || 'University service temporarily unavailable',
+      fetchedAt: new Date().toISOString(),
+    });
   }
 }
