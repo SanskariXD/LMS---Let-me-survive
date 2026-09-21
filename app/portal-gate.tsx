@@ -120,9 +120,16 @@ export default function PortalGate() {
 
     // Check active session cookie
     fetch('/api/portal/session', { cache: 'no-store' })
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) return { unlocked: false };
+        try {
+          return await res.json();
+        } catch {
+          return { unlocked: false };
+        }
+      })
       .then((data) => {
-        if (live && data.unlocked === true) {
+        if (live && data?.unlocked === true) {
           setUnlocked(true);
           if (data.user) {
             setCurrentUser(data.user);
@@ -157,7 +164,13 @@ export default function PortalGate() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await response.json();
+
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch {
+        data = { error: 'Server returned an empty or invalid response.' };
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Incorrect PIN. Try again or login with credentials.');
@@ -196,7 +209,13 @@ export default function PortalGate() {
           pin: setupPin.length === 6 ? setupPin : undefined,
         }),
       });
-      const data = await response.json();
+
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch {
+        data = { error: 'Server returned an empty or invalid response.' };
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to connect university account. Check credentials.');

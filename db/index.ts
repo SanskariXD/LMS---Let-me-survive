@@ -2,8 +2,20 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema';
 
-const dbUrl = process.env.DATABASE_URL || 'file:local.db';
-const authToken = process.env.DATABASE_AUTH_TOKEN;
+function getDatabaseUrl(): string {
+  if (process.env.TURSO_DATABASE_URL) return process.env.TURSO_DATABASE_URL;
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  if (process.env.LIBSQL_URL) return process.env.LIBSQL_URL;
+  
+  // On Vercel / AWS Lambda serverless execution, use writeable /tmp
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return 'file:/tmp/local.db';
+  }
+  return 'file:local.db';
+}
+
+const dbUrl = getDatabaseUrl();
+const authToken = process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN;
 
 const client = createClient({
   url: dbUrl,
