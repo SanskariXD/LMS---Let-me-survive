@@ -365,33 +365,33 @@ export function ProfileView({
       )}
 
       {/* Modern Student Profile Hero Banner (NO "Active" badge, sleek styling) */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-slate-800">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-7 md:p-8 shadow-xl border border-slate-800">
         {/* Subtle background glow blobs */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 -mb-20 w-60 h-60 rounded-full bg-violet-600/15 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 min-w-0">
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 sm:gap-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-5 min-w-0 w-full md:w-auto">
             {/* Mascot Avatar Frame */}
             <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden border-2 border-indigo-400/40 shadow-xl bg-slate-800 flex items-center justify-center group">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-22 md:h-22 rounded-2xl overflow-hidden border-2 border-indigo-400/40 shadow-xl bg-slate-800 flex items-center justify-center group">
                 <img
                   src="/cat-study.jpg"
                   alt="LMS² Mascot"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
               </div>
-              <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-indigo-600 border-2 border-slate-900 flex items-center justify-center text-white">
-                <Sparkles size={11} />
+              <span className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-600 border-2 border-slate-900 flex items-center justify-center text-white">
+                <Sparkles size={10} className="sm:w-3 sm:h-3" />
               </span>
             </div>
 
-            <div className="space-y-2 min-w-0">
+            <div className="space-y-1.5 sm:space-y-2 min-w-0 flex-1">
               <div>
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight truncate">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight leading-tight break-words">
                   {formattedName}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5">
                   {/* Enrollment Pill with copy button */}
                   <button
                     onClick={copyEnrollment}
@@ -412,29 +412,29 @@ export function ProfileView({
                 </div>
               </div>
 
-              <p className="text-xs text-slate-300/80 font-medium flex items-center gap-1.5 truncate">
+              <p className="text-[11px] sm:text-xs text-slate-300/80 font-medium flex flex-wrap items-center gap-1 sm:gap-1.5 leading-tight">
                 <span>Amity School of Engineering and Technology</span>
-                <span className="text-slate-500">·</span>
+                <span className="text-slate-500 hidden sm:inline">·</span>
                 <span className="text-indigo-300">Bengaluru Campus</span>
               </p>
             </div>
           </div>
 
           {/* Quick Snapshot Badges */}
-          <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-2 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-white/10">
-            <div className="px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-right">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+          <div className="grid grid-cols-2 sm:flex sm:flex-col items-stretch sm:items-end gap-2 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-white/10">
+            <div className="p-2.5 sm:px-3.5 sm:py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-left sm:text-right">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                 Current Standing
               </span>
-              <span className="text-xs font-semibold text-white">
+              <span className="text-xs font-semibold text-white whitespace-nowrap">
                 {currentSemesterLabel}
               </span>
             </div>
-            <div className="px-3.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-right">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+            <div className="p-2.5 sm:px-3.5 sm:py-1.5 rounded-xl bg-white/5 border border-white/10 text-left sm:text-right col-span-2 sm:col-span-1">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                 University Email
               </span>
-              <span className="text-xs font-mono font-medium text-indigo-200">
+              <span className="text-xs font-mono font-medium text-indigo-200 break-all">
                 {email}
               </span>
             </div>
@@ -446,56 +446,56 @@ export function ProfileView({
         {/* LEFT COLUMN: Basic Information & Academic Snapshot */}
         <div className="lg:col-span-2 space-y-6">
           {/* Basic Registry Information */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                  <User size={16} className="text-indigo-600" />
+                  <User size={16} className="text-indigo-600 flex-shrink-0" />
                   <span>{t.basicInfoTitle}</span>
                 </h3>
                 <p className="text-[11px] text-slate-400 font-medium">
                   Official student registry records from the university academic database.
                 </p>
               </div>
-              <span className="text-[10px] px-2.5 py-0.5 font-bold rounded-md bg-slate-100 text-slate-600 border border-slate-200/60">
+              <span className="self-start sm:self-auto text-[10px] px-2.5 py-0.5 font-bold rounded-md bg-slate-100 text-slate-600 border border-slate-200/60">
                 Verified Registry
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-              <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5 text-xs">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Full Name</span>
-                <p className="font-bold text-slate-900 text-sm leading-tight">{rawName}</p>
+                <p className="font-bold text-slate-900 text-xs sm:text-sm leading-tight break-words">{rawName}</p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Enrollment Number</span>
-                <p className="font-mono font-bold text-indigo-600 text-sm leading-tight">{studentId}</p>
+                <p className="font-mono font-bold text-indigo-600 text-xs sm:text-sm leading-tight break-all">{studentId}</p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Program</span>
-                <p className="font-bold text-slate-900">{program}</p>
+                <p className="font-bold text-slate-900 leading-tight">{program}</p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">School / Department</span>
-                <p className="font-semibold text-slate-800">Amity School of Engineering and Technology</p>
+                <p className="font-semibold text-slate-800 leading-tight">Amity School of Engineering and Technology</p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Section & Campus</span>
-                <p className="font-semibold text-slate-800">CSE-3 · Bengaluru Campus</p>
+                <p className="font-semibold text-slate-800 leading-tight">CSE-3 · Bengaluru Campus</p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Batch / Admission Year</span>
-                <p className="font-bold text-slate-900">2024 (Class of 2028)</p>
+                <p className="font-bold text-slate-900 leading-tight">2024 (Class of 2028)</p>
               </div>
 
-              <div className="sm:col-span-2 p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
+              <div className="sm:col-span-2 p-3 sm:p-3.5 rounded-xl bg-slate-50/70 border border-slate-100/90 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">University Email Address</span>
-                <p className="font-mono font-semibold text-slate-800 text-xs">{email}</p>
+                <p className="font-mono font-semibold text-slate-800 text-xs break-all">{email}</p>
               </div>
             </div>
           </div>

@@ -2284,33 +2284,33 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
       {/* DETAILED ATTENDANCE REPORT MODAL (NO "RM", CLEAN HEADERS) */}
       <Dialog open={!!selectedReportTarget} onOpenChange={(open) => { if (!open) setSelectedReportTarget(null); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-6 rounded-2xl bg-white">
-          <DialogHeader className="border-b border-slate-100 pb-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono text-xs font-bold text-indigo-600">
+        <DialogContent className="w-[94vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl bg-white shadow-2xl">
+          <DialogHeader className="border-b border-slate-100 pb-3 sm:pb-4 pr-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                  <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
                     {selectedReportTarget?.course_code}
                   </span>
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700">
                     {selectedReportTarget?.component_label} ({selectedReportTarget?.slot_name})
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-[11px] sm:text-xs text-slate-400">
                     {selectedReportTarget?.venue || '510'}
                   </span>
                 </div>
-                <DialogTitle className="text-base font-bold text-slate-900">
+                <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 leading-snug break-words">
                   {selectedReportTarget?.course_name}
                 </DialogTitle>
-                <DialogDescription className="text-xs text-slate-400 mt-0.5">
-                  Date-wise attendance log.
+                <DialogDescription className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+                  Date-wise attendance log & session records.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
           {reportLoading ? (
-            <div className="py-16 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
+            <div className="py-14 sm:py-16 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
               <RefreshCw className="spinning text-indigo-500" size={22} />
               <span>Fetching attendance sheet...</span>
             </div>
@@ -2320,32 +2320,32 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
               <span>{reportError}</span>
             </div>
           ) : reportData ? (
-            <div className="space-y-5 pt-2">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-4 gap-3">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
-                  <span className="text-lg font-black text-slate-800 block">
+            <div className="space-y-4 sm:space-y-5 pt-1 sm:pt-2">
+              {/* Summary Cards - 2 cols on mobile, 4 cols on desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                <div className="p-2.5 sm:p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                  <span className="text-base sm:text-lg font-black text-slate-800 block">
                     {reportData.summary.total_classes}
                   </span>
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase">Total Classes</span>
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400 uppercase">Total Classes</span>
                 </div>
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-center">
-                  <span className="text-lg font-black text-emerald-700 block">
+                <div className="p-2.5 sm:p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-center">
+                  <span className="text-base sm:text-lg font-black text-emerald-700 block">
                     {reportData.summary.present_classes}
                   </span>
-                  <span className="text-[10px] font-semibold text-emerald-600 uppercase">Present</span>
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-emerald-600 uppercase">Present</span>
                 </div>
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-center">
-                  <span className="text-lg font-black text-rose-700 block">
+                <div className="p-2.5 sm:p-3 rounded-xl bg-rose-50 border border-rose-100 text-center">
+                  <span className="text-base sm:text-lg font-black text-rose-700 block">
                     {reportData.summary.absent_classes}
                   </span>
-                  <span className="text-[10px] font-semibold text-rose-600 uppercase">Absent</span>
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-rose-600 uppercase">Absent</span>
                 </div>
-                <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-center">
-                  <span className="text-lg font-black text-indigo-700 block">
+                <div className="p-2.5 sm:p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-center">
+                  <span className="text-base sm:text-lg font-black text-indigo-700 block">
                     {reportData.summary.attendance_percentage}%
                   </span>
-                  <span className="text-[10px] font-semibold text-indigo-600 uppercase">
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-indigo-600 uppercase">
                     {selectedReportTarget && isLabItem(selectedReportTarget)
                       ? 'Lab Session'
                       : reportData.summary.meets_requirement
@@ -2357,19 +2357,19 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
               {/* Records List Table */}
               <div>
-                <h4 className="text-xs font-bold text-slate-800 mb-2.5">
+                <h4 className="text-xs font-bold text-slate-800 mb-2">
                   Class Log ({reportData.attendance_records?.length ?? 0} Sessions Recorded)
                 </h4>
 
-                <div className="border border-slate-100 rounded-xl overflow-hidden">
-                  <Table>
+                <div className="border border-slate-100 rounded-xl overflow-x-auto">
+                  <Table className="min-w-[480px] sm:min-w-full">
                     <TableHeader className="bg-slate-50/80">
                       <TableRow>
-                        <TableHead className="text-[11px] font-semibold">Date & Day</TableHead>
-                        <TableHead className="text-[11px] font-semibold">Slot & Time</TableHead>
-                        <TableHead className="text-[11px] font-semibold">Venue</TableHead>
-                        <TableHead className="text-[11px] font-semibold">Faculty</TableHead>
-                        <TableHead className="text-[11px] font-semibold text-right">Status</TableHead>
+                        <TableHead className="text-[10px] sm:text-[11px] font-semibold py-2">Date & Day</TableHead>
+                        <TableHead className="text-[10px] sm:text-[11px] font-semibold py-2">Slot & Time</TableHead>
+                        <TableHead className="text-[10px] sm:text-[11px] font-semibold py-2">Venue</TableHead>
+                        <TableHead className="text-[10px] sm:text-[11px] font-semibold py-2">Faculty</TableHead>
+                        <TableHead className="text-[10px] sm:text-[11px] font-semibold text-right py-2">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -2380,25 +2380,25 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
                           return (
                             <TableRow key={i} className="text-xs">
-                              <TableCell className="font-semibold text-slate-800">
+                              <TableCell className="font-semibold text-slate-800 py-2.5">
                                 {formatDate(rec.attendance_date)}
                                 <span className="block text-[10px] text-slate-400 font-normal">
                                   {rec.slot_day}
                                 </span>
                               </TableCell>
-                              <TableCell className="text-slate-600">
-                                <span>{rec.slot_time}</span>
+                              <TableCell className="text-slate-600 py-2.5">
+                                <span className="whitespace-nowrap">{rec.slot_time}</span>
                                 <span className="block text-[10px] text-slate-400">
                                   Slot {rec.slot_name}
                                 </span>
                               </TableCell>
-                              <TableCell className="text-slate-600">
+                              <TableCell className="text-slate-600 py-2.5 whitespace-nowrap">
                                 {rec.venue || '510'}
                               </TableCell>
-                              <TableCell className="text-slate-700 font-medium">
+                              <TableCell className="text-slate-700 font-medium py-2.5 max-w-[140px] truncate" title={rec.faculty_name || 'Department Faculty'}>
                                 {rec.faculty_name || 'Department Faculty'}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right py-2.5">
                                 <span
                                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
                                     isOD
