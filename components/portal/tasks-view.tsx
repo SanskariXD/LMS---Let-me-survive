@@ -65,63 +65,7 @@ export interface EnrolledCourseInfo {
 
 const STORAGE_KEY = 'slotwise_portal_tasks';
 
-const INITIAL_TASKS: TaskItem[] = [
-  {
-    id: 'task-init-1',
-    type: 'assignment',
-    title: 'Design AVL Tree & Red-Black Tree Implementation',
-    description: 'Submit source code in Java/C++ along with complexity analysis report.',
-    completed: false,
-    createdAt: new Date().toISOString(),
-    priority: 'HIGH',
-    dueDate: new Date().toISOString().split('T')[0], // Today
-    dueTime: '23:59',
-    reminder: '1h',
-    courseCode: 'CSE2001',
-    courseName: 'Data Structures and Algorithms',
-    slot: 'B',
-    submissionLink: 'https://amityonline.com/submissions/cse2001',
-  },
-  {
-    id: 'task-init-2',
-    type: 'assignment',
-    title: 'E-Commerce Database Schema & 3NF Normalization',
-    description: 'Design ER diagram and schema for multi-vendor online marketplace.',
-    completed: false,
-    createdAt: new Date().toISOString(),
-    priority: 'MEDIUM',
-    dueDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0], // in 2 days
-    dueTime: '17:00',
-    reminder: '3h',
-    courseCode: 'CSE2007',
-    courseName: 'Relational Database Management System',
-    slot: 'D',
-  },
-  {
-    id: 'task-init-3',
-    type: 'todo',
-    title: 'Print Course Registration Confirmation Form',
-    description: 'Submit signed hard copy to department coordinator by Friday.',
-    completed: false,
-    createdAt: new Date().toISOString(),
-    priority: 'LOW',
-    dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-    dueTime: '15:00',
-    reminder: '1d',
-    category: 'College',
-  },
-  {
-    id: 'task-init-4',
-    type: 'todo',
-    title: 'Review Linux Process Scheduling Algorithms',
-    description: 'Read Chapter 5 from Silberschatz OS textbook for quiz.',
-    completed: false,
-    createdAt: new Date().toISOString(),
-    priority: 'MEDIUM',
-    category: 'Study',
-    reminder: 'none',
-  },
-];
+const INITIAL_TASKS: TaskItem[] = [];
 
 interface TasksViewProps {
   enrolledCourses?: EnrolledCourseInfo[];
@@ -166,9 +110,11 @@ export function TasksView({ enrolledCourses = [], onTasksUpdated }: TasksViewPro
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTasks(parsed);
-          if (onTasksUpdated) onTasksUpdated(parsed);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter((t: any) => !t.id?.startsWith('task-init-'));
+          setTasks(cleaned);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+          if (onTasksUpdated) onTasksUpdated(cleaned);
         }
       }
     } catch {}
@@ -178,55 +124,36 @@ export function TasksView({ enrolledCourses = [], onTasksUpdated }: TasksViewPro
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data?.tasks)) {
-          if (data.tasks.length > 0) {
-            const mapped: TaskItem[] = data.tasks.map((t: any) => ({
-              id: t.id,
-              type: t.is_assignment ? 'assignment' : 'todo',
-              title: t.title,
-              description: t.description || undefined,
-              completed: !!t.completed,
-              createdAt: new Date(t.created_at).toISOString(),
-              priority: (t.priority?.toUpperCase() as any) || 'MEDIUM',
-              dueDate: t.deadline_date || undefined,
-              dueTime: t.deadline_time || undefined,
-              reminder: t.reminder_mins ? (`${t.reminder_mins}m` as any) : 'none',
-              customReminderMinutes: t.reminder_mins || 30,
-              courseCode: t.course || undefined,
-              courseName: t.course || undefined,
-              professor: t.professor || undefined,
-              slot: t.slot || undefined,
-              submissionLink: t.submission_url || undefined,
-              category: 'College',
-            }));
-            setTasks(mapped);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
-            if (onTasksUpdated) onTasksUpdated(mapped);
-          } else {
-            // Seed initial sample tasks if account is brand new
-            INITIAL_TASKS.forEach((it) => {
-              fetch('/api/tasks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  id: it.id,
-                  title: it.title,
-                  isAssignment: it.type === 'assignment',
-                  course: it.courseCode,
-                  professor: it.professor,
-                  slot: it.slot,
-                  description: it.description,
-                  deadlineDate: it.dueDate,
-                  deadlineTime: it.dueTime,
-                  priority: it.priority?.toLowerCase(),
-                  completed: it.completed,
-                  submissionUrl: it.submissionLink,
-                }),
-              }).catch(() => {});
-            });
-            setTasks(INITIAL_TASKS);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_TASKS));
-            if (onTasksUpdated) onTasksUpdated(INITIAL_TASKS);
-          }
+          // Purge any old dummy task-init- items from database
+          data.tasks.forEach((t: any) => {
+            if (t.id?.startsWith('task-init-')) {
+              fetch(`/api/tasks/${t.id}`, { method: 'DELETE' }).catch(() => {});
+            }
+          });
+
+          const validTasks = data.tasks.filter((t: any) => !t.id?.startsWith('task-init-'));
+          const mapped: TaskItem[] = validTasks.map((t: any) => ({
+            id: t.id,
+            type: t.is_assignment ? 'assignment' : 'todo',
+            title: t.title,
+            description: t.description || undefined,
+            completed: !!t.completed,
+            createdAt: new Date(t.created_at).toISOString(),
+            priority: (t.priority?.toUpperCase() as any) || 'MEDIUM',
+            dueDate: t.deadline_date || undefined,
+            dueTime: t.deadline_time || undefined,
+            reminder: t.reminder_mins ? (`${t.reminder_mins}m` as any) : 'none',
+            customReminderMinutes: t.reminder_mins || 30,
+            courseCode: t.course || undefined,
+            courseName: t.course || undefined,
+            professor: t.professor || undefined,
+            slot: t.slot || undefined,
+            submissionLink: t.submission_url || undefined,
+            category: 'College',
+          }));
+          setTasks(mapped);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
+          if (onTasksUpdated) onTasksUpdated(mapped);
         }
       })
       .catch(() => {});
@@ -974,14 +901,35 @@ export function TasksView({ enrolledCourses = [], onTasksUpdated }: TasksViewPro
           sections.upcoming.length === 0 &&
           sections.noDeadline.length === 0 &&
           activeTab !== 'completed' && (
-            <div className="bg-white p-12 rounded-2xl border border-slate-200/70 text-center space-y-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
-                <Check size={20} />
+            <div className="bg-white p-10 sm:p-12 rounded-2xl border border-slate-200/70 text-center space-y-4 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-2xs">
+                <Calendar size={22} />
               </div>
-              <h3 className="text-sm font-bold text-slate-800">All caught up!</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                No active tasks matching your filter. Click Add Assignment or Add To-Do above to record deadlines.
-              </p>
+              <div className="space-y-1">
+                <h3 className="text-sm sm:text-base font-bold text-slate-800">No tasks or deadlines scheduled</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  Keep your semester organized by scheduling your assignment deadlines, lab submissions, or study to-dos.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+                <Button
+                  size="sm"
+                  onClick={() => handleOpenCreate('assignment')}
+                  className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs flex items-center gap-1.5"
+                >
+                  <Plus size={14} />
+                  <span>Add Assignment Reminder</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleOpenCreate('todo')}
+                  className="h-8 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-1.5"
+                >
+                  <Plus size={14} />
+                  <span>Add Personal To-Do</span>
+                </Button>
+              </div>
             </div>
           )}
 

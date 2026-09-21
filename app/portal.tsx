@@ -13,7 +13,7 @@ import {
   GraduationCap,
   Layers3,
   AlertCircle,
-  LockKeyhole,
+  LogOut,
   ChevronRight,
   Bell,
   TrendingUp,
@@ -290,7 +290,10 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       }
       const storedTasks = localStorage.getItem('slotwise_portal_tasks');
       if (storedTasks) {
-        setPortalTasks(JSON.parse(storedTasks));
+        const parsed = JSON.parse(storedTasks);
+        if (Array.isArray(parsed)) {
+          setPortalTasks(parsed.filter((t: any) => !t.id?.startsWith('task-init-')));
+        }
       }
     } catch {}
 
@@ -872,12 +875,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
         };
       });
     }
-    // Initial friendly sample if tasks not yet added
-    return [
-      { title: 'Design AVL Tree & Red-Black Tree Implementation', course: 'Data Structures and Algorithms', code: 'CSE2001', due: 'Today 23:59', urgent: true, color: 'text-amber-600 bg-amber-50 border-amber-200' },
-      { title: 'E-Commerce Database Schema & 3NF Normalization', course: 'Relational Database Management System', code: 'CSE2007', due: 'In 2 days 17:00', urgent: false, color: 'text-blue-600 bg-blue-50 border-blue-200' },
-      { title: 'Print Course Registration Confirmation Form', course: 'College', code: 'College', due: 'In 3 days 15:00', urgent: false, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
-    ];
+    return [];
   }, [portalTasks]);
 
   // Derive Today's Classes using the exact Slotwise slotting engine
@@ -1070,21 +1068,12 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                   size="icon"
                   variant="ghost"
                   onClick={onSwitchUser}
-                  title="Switch Account / Sign Out"
-                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                  title="Sign Out"
+                  className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                 >
-                  <Users size={14} />
+                  <LogOut size={14} />
                 </Button>
               )}
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={onLock}
-                title="Lock Portal"
-                className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/50"
-              >
-                <LockKeyhole size={14} />
-              </Button>
             </div>
           </div>
           <div className="mt-3 text-[10px] text-center font-medium text-slate-400 border-t border-slate-200/60 pt-2 flex items-center justify-center gap-1">
@@ -1361,9 +1350,19 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                       <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">{t.upcomingDeadlinesTitle}</h2>
                       <p className="text-[11px] text-slate-400 font-medium">{t.upcomingDeadlinesSub}</p>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => setView('tasks')} className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-2 rounded-lg font-medium">
-                      {t.viewAll}
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        onClick={() => setView('tasks')}
+                        className="h-7 text-xs font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 px-2.5 rounded-lg flex items-center gap-1 shadow-none"
+                      >
+                        <Plus size={13} />
+                        <span>Add</span>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setView('tasks')} className="h-7 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-2 rounded-lg font-medium">
+                        {t.viewAll}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 max-h-[250px] scrollbar-thin">
@@ -1385,8 +1384,24 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                         </div>
                       ))
                     ) : (
-                      <div className="py-12 flex flex-col items-center justify-center text-xs text-slate-400 text-center">
-                        <span>{t.noDeadlines}</span>
+                      <div className="py-6 sm:py-8 px-4 flex flex-col items-center justify-center text-center rounded-xl border border-dashed border-slate-200/90 bg-slate-50/50 space-y-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-2xs">
+                          <SquareCheckBig size={18} />
+                        </div>
+                        <div className="space-y-0.5">
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-700">No tasks or deadlines scheduled</h4>
+                          <p className="text-[11px] text-slate-400 max-w-xs">
+                            Keep track of assignment submissions, lab exercises, and study to-dos.
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => setView('tasks')}
+                          className="h-7 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-2xs flex items-center gap-1.5 px-3"
+                        >
+                          <Plus size={13} />
+                          <span>Add Task or Reminder</span>
+                        </Button>
                       </div>
                     )}
                   </div>
