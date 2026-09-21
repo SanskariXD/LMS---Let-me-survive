@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
           id: user.id,
           name: user.student_name,
           enrollment: user.enrollment_number,
+          email: user.email,
           program: user.program_code,
           hasPin: true,
         },

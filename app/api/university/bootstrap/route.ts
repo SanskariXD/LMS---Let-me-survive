@@ -3,7 +3,7 @@ import { universityRequest } from '@/lib/university/client';
 import { UNIVERSITY_ENDPOINTS } from '@/lib/university/endpoints';
 import { normalizeSemesters } from '@/lib/university/normalize';
 import { validateSession } from '@/lib/portal/session';
-import { getUserById, getUniversityCachedData, saveUniversityCachedData } from '@/lib/db/queries';
+import { getUserById, getUniversityCachedData, saveUniversityCachedData, updateUserEmail } from '@/lib/db/queries';
 
 export const preferredRegion = 'bom1';
 
@@ -107,7 +107,9 @@ export async function GET(request: NextRequest) {
           name: dbUser?.student_name || 'Student',
           username: enrollment,
           enrollment,
+          email: dbUser?.email || null,
           program: dbUser?.program_code || null,
+          hasPin: !!dbUser?.pin_hash,
         },
         semesters: cachedSemesters,
         currentSemester: cachedSemesters[0] || null,
@@ -122,11 +124,25 @@ export async function GET(request: NextRequest) {
     const meData = meProbe.rawResponse as any;
     const studentData = studentProbe.rawResponse as any;
 
+    const officialEmail =
+      meData?.email ||
+      meData?.user?.email ||
+      studentData?.email ||
+      studentData?.student_email ||
+      dbUser?.email ||
+      null;
+
+    if (userId && officialEmail && (!dbUser?.email || dbUser.email !== officialEmail)) {
+      updateUserEmail(userId, officialEmail).catch(() => {});
+    }
+
     const user = {
       name: dbUser?.student_name || meData?.full_name || meData?.user?.full_name || 'Student',
       username: meData?.username || meData?.user?.username || enrollment,
       enrollment: enrollment,
+      email: officialEmail || (enrollment ? `${enrollment}@s.amity.edu` : null),
       program: dbUser?.program_code || studentData?.program_name || studentData?.program || null,
+      hasPin: !!dbUser?.pin_hash,
     };
 
     // Normalize semesters

@@ -54,7 +54,9 @@ interface ProfileViewProps {
       name: string;
       username: string;
       enrollment: string | null;
+      email?: string | null;
       program: string | null;
+      hasPin?: boolean;
     };
     semesters: Array<{ slot_year: string; semester_type: string }>;
     currentSemester?: { slot_year: string; semester_type: string } | null;
@@ -100,16 +102,32 @@ export function ProfileView({
   const [pinMessage, setPinMessage] = useState<string | null>(null);
   const [pinIsError, setPinIsError] = useState(false);
 
-  // Check whether PIN is set on mount
+  const [officialEmail, setOfficialEmail] = useState<string | null>(null);
+
+  // Check whether PIN is set on mount & fetch live profile for official university email
   useEffect(() => {
     if (session?.user && (session.user as any).hasPin !== undefined) {
       setHasPin(Boolean((session.user as any).hasPin));
+    }
+    if (session?.user?.email) {
+      setOfficialEmail(session.user.email);
     }
     fetch('/api/user/pin')
       .then((res) => res.json())
       .then((data) => {
         if (typeof data?.hasPin === 'boolean') {
           setHasPin(data.hasPin);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch official university profile (proxies to /api/auth/me)
+    fetch('/api/university/profile', { credentials: 'same-origin' })
+      .then((res) => res.json())
+      .then((data) => {
+        const found = data?.email || data?.user?.email;
+        if (found && typeof found === 'string' && found.includes('@')) {
+          setOfficialEmail(found);
         }
       })
       .catch(() => {});
@@ -325,9 +343,12 @@ export function ProfileView({
     .split(' ')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
-  const email = session?.user.username?.includes('@') && !session.user.username.endsWith('@blr.amity.edu')
-    ? session.user.username
-    : `${studentId.split('@')[0]}@s.amity.edu`;
+  const email =
+    officialEmail ||
+    session?.user?.email ||
+    (session?.user.username?.includes('@') && !session.user.username.endsWith('@blr.amity.edu')
+      ? session.user.username
+      : `${studentId.split('@')[0]}@s.amity.edu`);
   const program = session?.user.program || 'B.Tech. (CSE)';
   const currentSemesterLabel = session?.currentSemester
     ? `${session.currentSemester.semester_type} ${session.currentSemester.slot_year}`

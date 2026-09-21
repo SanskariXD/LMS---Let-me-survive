@@ -113,7 +113,7 @@ const SARCASTIC_QUOTES = [
 
 type Semester = { slot_year: string; semester_type: string };
 type Session = {
-  user: { name: string; username: string; enrollment: string | null; program: string | null };
+  user: { name: string; username: string; enrollment: string | null; email?: string | null; program: string | null; hasPin?: boolean };
   semesters: Semester[];
   currentSemester?: Semester | null;
   profileAvailable: boolean;

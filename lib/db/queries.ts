@@ -29,6 +29,14 @@ export async function getUserByEnrollment(enrollmentOrEmail: string) {
   return rows[0] || null;
 }
 
+export async function updateUserEmail(userId: string, email: string) {
+  await ensureDbInitialized();
+  await db.update(schema.users).set({
+    email: email.trim(),
+    updated_at: Date.now(),
+  }).where(eq(schema.users.id, userId));
+}
+
 export async function upsertUser(data: {
   enrollmentNumber: string;
   studentName: string;

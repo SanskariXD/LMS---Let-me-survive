@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Try to fetch rich student info from university profile
     let fullName = loginResult.user?.full_name || '';
+    let officialEmail = loginResult.user?.email || '';
     let programCode = '';
     let yearAdmitted: number | undefined;
 
@@ -38,11 +39,16 @@ export async function POST(request: NextRequest) {
         headers: { Authorization: `Bearer ${loginResult.token}` },
       });
       if (meData?.full_name) fullName = meData.full_name;
+      if (meData?.email) officialEmail = meData.email;
+      else if (meData?.user?.email) officialEmail = meData.user.email;
 
       const studentData = await universityRequest<any>(UNIVERSITY_ENDPOINTS.student(studentEnrollment), {
         headers: { Authorization: `Bearer ${loginResult.token}` },
       });
       if (studentData?.student_name) fullName = studentData.student_name;
+      if (studentData?.email || studentData?.student_email) {
+        officialEmail = studentData.email || studentData.student_email;
+      }
       if (studentData?.program_name || studentData?.program_code) {
         programCode = studentData.program_name || studentData.program_code;
       }
@@ -67,7 +73,7 @@ export async function POST(request: NextRequest) {
     const user = await upsertUser({
       enrollmentNumber: studentEnrollment,
       studentName: fullName,
-      email: loginResult.user?.email || (username.includes('@') && !username.endsWith('@blr.amity.edu') ? username : `${studentEnrollment}@s.amity.edu`),
+      email: officialEmail || (username.includes('@') && !username.endsWith('@blr.amity.edu') ? username : undefined),
       programCode,
       yearAdmitted,
       pinHash,
@@ -94,6 +100,7 @@ export async function POST(request: NextRequest) {
         id: user.id,
         name: user.student_name,
         enrollment: user.enrollment_number,
+        email: user.email,
         program: user.program_code,
         hasPin: !!user.pin_hash,
       },
