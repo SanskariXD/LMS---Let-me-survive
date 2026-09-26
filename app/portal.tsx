@@ -32,6 +32,9 @@ import {
   Plus,
   Trash2,
   Users,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { getCurriculumCourse, auditDegreeProgress } from '@/lib/university/curriculum';
 
@@ -51,9 +54,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInset,
+  SidebarTrigger,
+  useSidebar,
+} from '@/components/ui/sidebar';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { attendanceAdvice } from '@/lib/university/normalize';
 import {
   DAYS,
@@ -113,7 +129,7 @@ const SARCASTIC_QUOTES = [
 
 type Semester = { slot_year: string; semester_type: string };
 type Session = {
-  user: { name: string; username: string; enrollment: string | null; email?: string | null; program: string | null; hasPin?: boolean };
+  user: { id?: string; name: string; username: string; enrollment: string | null; email?: string | null; program: string | null; hasPin?: boolean };
   semesters: Semester[];
   currentSemester?: Semester | null;
   profileAvailable: boolean;
@@ -184,6 +200,51 @@ async function request(path: string, body?: object) {
   return data;
 }
 
+function PortalNavMenu({
+  items,
+  activeView,
+  onSelectView,
+}: {
+  items: Array<{ id: string; label: string; icon: any; badge?: string }>;
+  activeView: string;
+  onSelectView: (id: string) => void;
+}) {
+  const { setOpenMobile, isMobile } = useSidebar();
+
+  return (
+    <SidebarMenu className="gap-0.5">
+      {items.map((n) => (
+        <SidebarMenuItem key={n.id}>
+          <SidebarMenuButton
+            className={`h-10 px-3 rounded-xl font-medium text-xs transition-colors flex items-center justify-between ${
+              activeView === n.id
+                ? 'bg-indigo-50 text-indigo-600 font-semibold'
+                : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
+            }`}
+            isActive={activeView === n.id}
+            onClick={() => {
+              onSelectView(n.id);
+              if (isMobile) {
+                setOpenMobile(false);
+              }
+            }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <n.icon className={`w-4 h-4 flex-shrink-0 ${activeView === n.id ? 'text-indigo-600' : 'text-slate-400'}`} />
+              <span className="truncate">{n.label}</span>
+            </div>
+            {n.badge && (
+              <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-indigo-100/80 text-indigo-700 tracking-wider uppercase font-mono">
+                {n.badge}
+              </span>
+            )}
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
+}
+
 export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; onSwitchUser?: () => void }) {
   const [view, setView] = useState('overview');
   const [session, setSession] = useState<Session | null>(null);
@@ -252,7 +313,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
   // Detailed Marks Inspection Modal State
   const [selectedCourseForMarks, setSelectedCourseForMarks] = useState<any | null>(null);
-  const [marksDetailsData, setMarksDetailsData] = useState<{ marks: any; consolidated: any } | null>(null);
+  const [marksDetailsData, setMarksDetailsData] = useState<{ marks: any; consolidated: any; isOffline?: boolean; fetchedAt?: string } | null>(null);
   const [marksDetailsLoading, setMarksDetailsLoading] = useState(false);
   const [marksDetailsError, setMarksDetailsError] = useState('');
 
@@ -266,6 +327,14 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   const [activeAcademicsSemester, setActiveAcademicsSemester] = useState('');
   const [academicsLoading, setAcademicsLoading] = useState(false);
   const [academicsError, setAcademicsError] = useState('');
+
+  // Inactivity / Idle Lock & Session Re-authentication State
+  const [isIdleLocked, setIsIdleLocked] = useState(false);
+  const [isReauthModalOpen, setIsReauthModalOpen] = useState(false);
+  const [reauthPin, setReauthPin] = useState('');
+  const [reauthSubmitting, setReauthSubmitting] = useState(false);
+  const [reauthError, setReauthError] = useState('');
+  const [showReauthPin, setShowReauthPin] = useState(false);
 
   // Manual courses for past semesters (e.g. Fall 2024-25, Winter 2024-25) stored in localStorage
   const [manualCourses, setManualCourses] = useState<Record<string, Array<{
@@ -386,6 +455,9 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     setMarksDetailsData(null);
     setMarksDetailsLoading(true);
     setMarksDetailsError('');
+    const courseKey = `${course.course_code}_${course.slot_name}`;
+    const studentId = session?.user?.enrollment || 'student';
+
     try {
       const [slotYear, semType] = (activeMarksSemester || '').split('|');
       const y = slotYear || course.slot_year;
@@ -397,8 +469,22 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch marks report');
       setMarksDetailsData(data);
+      saveUniversitySnapshot(studentId, {
+        marksData: {
+          courseDetails: {
+            [courseKey]: data,
+          },
+        },
+      });
     } catch (err: any) {
-      setMarksDetailsError(err.message || 'Failed to load marks report');
+      const snap = getUniversitySnapshot(studentId);
+      const cachedDetail = snap?.marksData?.courseDetails?.[courseKey];
+      if (cachedDetail) {
+        setMarksDetailsData({ ...cachedDetail, isOffline: true });
+        setMarksDetailsError('');
+      } else {
+        setMarksDetailsError(err.message || 'Failed to load marks report');
+      }
     } finally {
       setMarksDetailsLoading(false);
     }
@@ -554,12 +640,100 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   }, [view]);
 
 
-  function clearSession() {
-    serial.current++;
-    setSession(null);
-    setActiveSemester('');
-    setAttendanceItems(null);
-    setLoading(false);
+  // Inactivity / Idle Timer: 15 minutes of no user interaction
+  useEffect(() => {
+    let idleTimeoutId: NodeJS.Timeout;
+    const IDLE_TIME_MS = 15 * 60 * 1000; // 15 minutes
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimeoutId);
+      idleTimeoutId = setTimeout(() => {
+        setIsIdleLocked(true);
+      }, IDLE_TIME_MS);
+    };
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    events.forEach((ev) => window.addEventListener(ev, resetIdleTimer, { passive: true }));
+    resetIdleTimer();
+
+    return () => {
+      clearTimeout(idleTimeoutId);
+      events.forEach((ev) => window.removeEventListener(ev, resetIdleTimer));
+    };
+  }, []);
+
+  function handleSessionExpired() {
+    const studentId = session?.user?.enrollment || 'student';
+    const snap = getUniversitySnapshot(studentId);
+    if (snap?.attendanceItems && snap.attendanceItems.length > 0) {
+      setAttendanceItems(snap.attendanceItems);
+      setIsUsingSavedData(true);
+      setSavedDataTimestamp(snap.timestamp);
+    }
+    if (snap?.user && !session) {
+      setSession({
+        user: snap.user,
+        semesters: snap.semesters || [],
+        currentSemester: snap.currentSemester || null,
+        profileAvailable: true,
+      });
+    }
+    setIsReauthModalOpen(true);
+  }
+
+  async function handleReauthPinSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (reauthSubmitting || reauthPin.length !== 6) return;
+    setReauthSubmitting(true);
+    setReauthError('');
+
+    try {
+      const activeEnrollment = session?.user?.enrollment || '';
+      let targetUserId = session?.user?.id || '';
+      if (!targetUserId) {
+        try {
+          const u = JSON.parse(localStorage.getItem('slotwise_device_user') || '{}');
+          if (u?.id) targetUserId = u.id;
+        } catch {}
+      }
+
+      const res = await fetch('/api/portal/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pin: reauthPin,
+          userId: targetUserId || undefined,
+          enrollment: activeEnrollment || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Incorrect PIN. Try again.');
+      }
+
+      // PIN validated and fresh university token acquired!
+      setReauthPin('');
+      setIsIdleLocked(false);
+      setIsReauthModalOpen(false);
+
+      if (data.user) {
+        setSession((prev) => prev ? { ...prev, user: { ...prev.user, ...data.user } } : null);
+        try {
+          localStorage.setItem('slotwise_device_user', JSON.stringify(data.user));
+        } catch {}
+      }
+
+      // Re-fetch live data with fresh token
+      if (activeSemester) {
+        void fetchAttendance(activeSemester);
+      }
+    } catch (err: any) {
+      setReauthPin('');
+      setReauthError(err.message || 'Failed to unlock portal.');
+    } finally {
+      setReauthSubmitting(false);
+    }
   }
 
   async function fetchAttendance(semKey: string) {
@@ -579,7 +753,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     } catch (e: any) {
       if (ticket !== serial.current) return;
       if (e.status === 401) {
-        clearSession();
+        handleSessionExpired();
         return;
       }
       // Check if snapshot exists
@@ -669,7 +843,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       .catch((e: any) => {
         if (!live) return;
         if (e.status === 401) {
-          clearSession();
+          handleSessionExpired();
           return;
         }
         const snap = getUniversitySnapshot(studentId);
@@ -701,7 +875,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
   // Silent background token and data refresh (keeps session active without disturbing user)
   useEffect(() => {
-    if (!activeSemester || isUsingSavedData) return;
+    if (!activeSemester) return;
     const interval = setInterval(() => {
       const [year, type] = activeSemester.split('|');
       request('attendance?' + new URLSearchParams({ slot_year: year, semester_type: type }))
@@ -714,12 +888,12 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
         })
         .catch((e: any) => {
           if (e.status === 401) {
-            request('bootstrap').then(applySession).catch(() => {});
+            handleSessionExpired();
           }
         });
     }, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [activeSemester, session, isUsingSavedData]);
+  }, [activeSemester, session]);
 
   async function refresh() {
     const studentId = session?.user?.enrollment || 'student';
@@ -741,7 +915,10 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
         await fetchAttendance(activeSemester);
       }
     } catch (e: any) {
-      if (e.status === 401) clearSession();
+      if (e.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       const snap = getUniversitySnapshot(studentId);
       if (snap) {
         setIsUsingSavedData(true);
@@ -772,6 +949,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     setReportData(null);
     setReportError('');
     setReportLoading(true);
+    const studentId = session?.user?.enrollment || 'student';
 
     try {
       const semYear = item.slot_year || activeSemester.split('|')[0];
@@ -787,8 +965,20 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
       const data = await request(`attendance/report?${params.toString()}`);
       setReportData(data);
+      saveUniversitySnapshot(studentId, {
+        attendanceReports: {
+          [item.course_code]: data,
+        },
+      });
     } catch (err: any) {
-      setReportError(err.message || 'Unable to fetch attendance log.');
+      const snap = getUniversitySnapshot(studentId);
+      const cachedReport = snap?.attendanceReports?.[item.course_code];
+      if (cachedReport) {
+        setReportData({ ...cachedReport, isOffline: true });
+        setReportError('');
+      } else {
+        setReportError(err.message || 'Unable to fetch attendance log.');
+      }
     } finally {
       setReportLoading(false);
     }
@@ -982,31 +1172,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
         <SidebarContent className="px-3 py-4">
           <div className="px-3 mb-2 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Menu</div>
-          <SidebarMenu className="gap-0.5">
-            {activeNavigation.map((n) => (
-              <SidebarMenuItem key={n.id}>
-                <SidebarMenuButton
-                  className={`h-10 px-3 rounded-xl font-medium text-xs transition-colors flex items-center justify-between ${
-                    view === n.id
-                      ? 'bg-indigo-50 text-indigo-600 font-semibold'
-                      : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
-                  }`}
-                  isActive={view === n.id}
-                  onClick={() => setView(n.id)}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <n.icon className={`w-4 h-4 flex-shrink-0 ${view === n.id ? 'text-indigo-600' : 'text-slate-400'}`} />
-                    <span className="truncate">{n.label}</span>
-                  </div>
-                  {n.badge && (
-                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-indigo-100/80 text-indigo-700 tracking-wider uppercase font-mono">
-                      {n.badge}
-                    </span>
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+          <PortalNavMenu items={activeNavigation} activeView={view} onSelectView={setView} />
 
           <div className="px-3 mt-7 mb-2 text-[10px] font-bold tracking-widest text-slate-400 uppercase">Tools</div>
           <SidebarMenu className="gap-0.5">
@@ -2717,6 +2883,106 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Session Inactivity Lock / Token Re-authentication Modal */}
+      <Dialog open={isIdleLocked || isReauthModalOpen} onOpenChange={() => {}}>
+        <DialogContent 
+          className="sm:max-w-md rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-indigo-100 z-[9999]"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-xs">
+              <Lock className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                {isIdleLocked ? 'Session Paused' : 'University Connection Expired'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                {isIdleLocked
+                  ? `Welcome back, ${firstName}. Enter your 6-digit PIN to resume.`
+                  : 'Enter your 6-digit PIN to acquire a fresh token and reconnect.'}
+              </p>
+            </div>
+
+            <form onSubmit={handleReauthPinSubmit} className="w-full space-y-4 pt-2">
+              <div className="flex flex-col items-center gap-2 py-1">
+                <InputOTP
+                  maxLength={6}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={reauthPin}
+                  onChange={setReauthPin}
+                  disabled={reauthSubmitting}
+                  autoFocus
+                  aria-label="Six-digit portal PIN"
+                >
+                  <InputOTPGroup className="gap-2 sm:gap-2.5">
+                    {[0, 1, 2, 3, 4, 5].map((index) => (
+                      <InputOTPSlot
+                        key={index}
+                        index={index}
+                        masked={!showReauthPin}
+                        className="w-11 h-14 sm:w-12 sm:h-14 text-xl font-bold border-indigo-100 bg-[#f7f6fc] text-indigo-950 rounded-2xl focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/15 transition-all shadow-sm"
+                      />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+
+                <button
+                  type="button"
+                  onClick={() => setShowReauthPin(!showReauthPin)}
+                  className="text-xs text-slate-500 hover:text-indigo-600 font-medium flex items-center gap-1.5 transition-colors pt-1 cursor-pointer"
+                >
+                  {showReauthPin ? <EyeOff size={14} /> : <Eye size={14} />}
+                  <span>{showReauthPin ? 'Hide PIN' : 'Show PIN'}</span>
+                </button>
+              </div>
+
+              {reauthError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200/80 text-rose-600 text-xs font-medium text-center animate-in fade-in duration-200">
+                  {reauthError}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={reauthSubmitting || reauthPin.length !== 6}
+                className="w-full py-3.5 h-auto rounded-2xl bg-[#1e2538] hover:bg-[#121724] active:scale-[0.99] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {reauthSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Reconnecting to university…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Unlock Portal</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </Button>
+
+              <div className="pt-2 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsIdleLocked(false);
+                    setIsReauthModalOpen(false);
+                    if (onSwitchUser) onSwitchUser();
+                    else onLock();
+                  }}
+                  className="text-xs text-slate-400 hover:text-rose-500 font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Users size={13} /> Switch Account / Login with Password
+                </button>
+              </div>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
     </SidebarProvider>

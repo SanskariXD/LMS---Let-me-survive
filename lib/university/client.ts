@@ -7,18 +7,19 @@ import {
   clearUniversityToken,
   isTokenValid,
 } from './token-store';
-import { getUserById, getUniversitySession, saveUniversitySession } from '@/lib/db/queries';
+import { getUserById, getUniversitySession, saveUniversitySession, invalidateUniversitySession } from '@/lib/db/queries';
 import { decryptSecret } from '@/lib/portal/auth';
 
 export interface UniversityRequestOptions extends RequestInit {
   userId?: string;
   timeoutMs?: number;
+  forceRefresh?: boolean;
 }
 
-export async function getValidTokenForUser(userId?: string): Promise<string> {
+export async function getValidTokenForUser(userId?: string, forceRefresh = false): Promise<string> {
   // 1. If no userId provided, use default university credentials
   if (!userId) {
-    if (isTokenValid('__default__')) {
+    if (!forceRefresh && isTokenValid('__default__')) {
       universityLog('TOKEN_CACHE_HIT', { scope: 'default' });
       return getCachedUniversityToken('__default__')!.token;
     }
@@ -27,29 +28,33 @@ export async function getValidTokenForUser(userId?: string): Promise<string> {
     return fresh.token;
   }
 
-  // 2. Check memory cache for this user
-  if (isTokenValid(userId)) {
+  // 2. Check memory cache for this user (unless forced refresh)
+  if (!forceRefresh && isTokenValid(userId)) {
     universityLog('TOKEN_CACHE_HIT', { userId: userId.slice(0, 8) });
     return getCachedUniversityToken(userId)!.token;
   }
 
-  // 3. Check persistent database session
-  try {
-    const dbSession = await getUniversitySession(userId);
-    if (dbSession && dbSession.token && dbSession.expires_at > Date.now() + 60_000) {
-      setCachedUniversityToken(userId, {
-        token: dbSession.token,
-        expiresAt: dbSession.expires_at,
-      });
-      universityLog('TOKEN_CACHE_HIT', { source: 'database', userId: userId.slice(0, 8) });
-      return dbSession.token;
+  // 3. Check persistent database session (unless forced refresh)
+  if (!forceRefresh) {
+    try {
+      const dbSession = await getUniversitySession(userId);
+      if (dbSession && dbSession.token && dbSession.status === 'active' && dbSession.expires_at > Date.now() + 60_000) {
+        setCachedUniversityToken(userId, {
+          token: dbSession.token,
+          expiresAt: dbSession.expires_at,
+        });
+        universityLog('TOKEN_CACHE_HIT', { source: 'database', userId: userId.slice(0, 8) });
+        return dbSession.token;
+      }
+    } catch (err) {
+      console.warn('[UniversityClient] Failed to check db session:', err);
     }
-  } catch (err) {
-    console.warn('[UniversityClient] Failed to check db session:', err);
   }
 
-  // 4. Token expired or missing — silently refresh if credentials stored
-  universityLog('TOKEN_EXPIRED', { userId: userId.slice(0, 8) });
+  // 4. Token expired, forced, or missing — refresh with stored credentials
+  universityLog(forceRefresh ? 'TOKEN_REFRESH' : 'TOKEN_EXPIRED', { userId: userId.slice(0, 8) });
+  clearUniversityToken(userId);
+
   const user = await getUserById(userId);
   if (!user || !user.university_password_encrypted) {
     throw new Error('UNIVERSITY_SESSION_EXPIRED');
@@ -60,10 +65,10 @@ export async function getValidTokenForUser(userId?: string): Promise<string> {
     throw new Error('UNIVERSITY_SESSION_EXPIRED');
   }
 
-  // Login with stored credentials
+  // Format enrollment correctly for university auth endpoint (@blr.amity.edu)
   const username = user.enrollment_number.includes('@')
     ? user.enrollment_number
-    : `${user.enrollment_number}@s.amity.edu`;
+    : `${user.enrollment_number}@blr.amity.edu`;
 
   const fresh = await loginToUniversity({
     username,
@@ -90,7 +95,7 @@ export async function universityRequest<T>(
   retry = true,
 ): Promise<T> {
   const userId = options?.userId;
-  const token = await getValidTokenForUser(userId);
+  const token = await getValidTokenForUser(userId, options?.forceRefresh);
   const url = `${universityConfig.baseUrl}${path}`;
   const method = options?.method ?? 'GET';
   const timeoutMs = options?.timeoutMs || 12000;
@@ -122,9 +127,12 @@ export async function universityRequest<T>(
   const duration = Date.now() - started;
 
   if (response.status === 401 && retry) {
-    universityLog('RETRY_AFTER_401', { endpoint: path });
+    universityLog('RETRY_AFTER_401', { endpoint: path, userId: userId?.slice(0, 8) });
     clearUniversityToken(userId || '__default__');
-    return universityRequest<T>(path, { ...options, userId }, false);
+    if (userId) {
+      await invalidateUniversitySession(userId);
+    }
+    return universityRequest<T>(path, { ...options, userId, forceRefresh: true }, false);
   }
 
   if (response.status === 403) {

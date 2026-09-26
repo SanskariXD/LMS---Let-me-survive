@@ -27,7 +27,10 @@ export async function loginToUniversity(credentials?: {
   username: string;
   password: string;
 }): Promise<UniversityLoginResult> {
-  const username = credentials?.username || universityConfig.username;
+  let username = (credentials?.username || universityConfig.username).trim();
+  if (!username.includes('@')) {
+    username = `${username}@blr.amity.edu`;
+  }
   const password = credentials?.password || universityConfig.password;
 
   universityLog('AUTH_START', { username: username.split('@')[0] });
@@ -38,7 +41,7 @@ export async function loginToUniversity(credentials?: {
   try {
     response = await fetch(url, {
       method: 'POST',
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(12000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });

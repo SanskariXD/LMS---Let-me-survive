@@ -124,6 +124,18 @@ export async function saveUniversitySession(userId: string, token: string, expir
   }
 }
 
+export async function invalidateUniversitySession(userId: string) {
+  try {
+    await ensureDbInitialized();
+    await db.update(schema.universitySessions).set({
+      expires_at: 0,
+      status: 'expired',
+    }).where(eq(schema.universitySessions.user_id, userId));
+  } catch (err) {
+    console.warn('[Queries] Failed to invalidate university session:', err);
+  }
+}
+
 export async function getUniversityCachedData(userId: string) {
   await ensureDbInitialized();
   const rows = await db.select().from(schema.universityCachedData).where(eq(schema.universityCachedData.user_id, userId)).limit(1);

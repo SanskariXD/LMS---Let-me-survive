@@ -16,9 +16,15 @@ export interface UniversitySnapshot {
   semesters?: Array<{ slot_year: string; semester_type: string }>;
   currentSemester?: { slot_year: string; semester_type: string } | null;
   attendanceItems?: any[];
+  attendanceReports?: Record<string, any>;
   timetableEvents?: any[];
   academicsData?: any;
-  marksData?: any;
+  marksData?: {
+    semesters?: Array<{ slot_year: string; semester_type: string }>;
+    courses?: any[];
+    courseDetails?: Record<string, { marks: any; consolidated: any }>;
+    [key: string]: any;
+  };
 }
 
 const CACHE_PREFIX = 'slotwise_univ_cache_';
@@ -58,6 +64,18 @@ export function saveUniversitySnapshot(studentId: string, data: Partial<Universi
       ...existing,
       ...data,
       studentId,
+      attendanceReports: {
+        ...(existing.attendanceReports || {}),
+        ...(data.attendanceReports || {}),
+      },
+      marksData: {
+        ...(existing.marksData || {}),
+        ...(data.marksData || {}),
+        courseDetails: {
+          ...(existing.marksData?.courseDetails || {}),
+          ...(data.marksData?.courseDetails || {}),
+        },
+      },
       timestamp: new Date().toISOString(),
     };
 
