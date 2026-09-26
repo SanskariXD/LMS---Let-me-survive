@@ -335,7 +335,7 @@ export default function PortalGate() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/30" />
           <div className="absolute top-4 left-4">
-            <img src="/logo.png" alt="LMS²" className="h-12 sm:h-14 w-auto object-contain drop-shadow-lg brightness-110" />
+            <img src="/logo.png" alt="LMS²" className="h-14 sm:h-16 w-auto object-contain drop-shadow-lg brightness-110" />
           </div>
         </div>
 
@@ -343,11 +343,11 @@ export default function PortalGate() {
         <div className="w-full md:w-[440px] lg:w-[470px] flex-shrink-0 flex flex-col justify-between p-6 sm:p-8 lg:p-10 bg-white relative z-10">
           
           {/* Top Branding (Desktop) */}
-          <div className="hidden md:block">
+          <div className="hidden md:block pb-1">
             <img 
               src="/logo.png" 
               alt="LMS² — Let Me Survive" 
-              className="h-14 sm:h-16 lg:h-18 max-w-[320px] w-auto object-contain"
+              className="w-60 sm:w-72 lg:w-80 h-auto max-h-24 object-contain -ml-1 transition-all"
             />
           </div>
 
