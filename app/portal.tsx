@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { RegistrationView } from '@/components/portal/registration-view';
 import { usePortalNavigation } from '@/lib/portal/navigation';
 import {
   LayoutDashboard,
+  ClipboardCheck,
   ChartNoAxesCombined,
   BookOpen,
   CalendarDays,
@@ -286,6 +288,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     { id: 'attendance', label: t.navAttendance, icon: ChartNoAxesCombined },
     { id: 'marks', label: t.navMarks, icon: Award },
     { id: 'timetable', label: t.navTimetable, icon: CalendarDays },
+    { id: 'registration', label: 'Course Registration', icon: ClipboardCheck },
     { id: 'academics', label: t.navAcademics, icon: GraduationCap, badge: 'Beta' },
     { id: 'tasks', label: t.navTasks, icon: SquareCheckBig },
     { id: 'resources', label: t.navResources, icon: BookOpen, badge: 'Beta' },
@@ -1611,6 +1614,8 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
             </div>
           )}
+
+          {view === 'registration' && <RegistrationView enrollment={session?.user?.enrollment || ''} onRegistered={() => { if (activeSemester) void fetchAttendance(activeSemester); }} />}
 
           {/* VIEW: ATTENDANCE (Separated Theory & Lab, no limit for labs unless <60%, clean headers, no "Rm") */}
           {view === 'attendance' && (

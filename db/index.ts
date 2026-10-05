@@ -26,6 +26,7 @@ const client = createClient({
 });
 
 export const db = drizzle(client, { schema });
+export const databaseClient = client;
 
 // Auto-initialize tables if they do not exist
 let initialized = false;

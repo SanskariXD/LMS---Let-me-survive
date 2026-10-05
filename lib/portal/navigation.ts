@@ -93,6 +93,12 @@ export function usePortalNavigation() {
     initialize();
     listeners.add(setView);
     setView(entry().view);
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('view') === 'registration') {
+      navigatePortal('registration');
+      url.searchParams.delete('view');
+      window.history.replaceState(window.history.state, '', url);
+    }
     return () => { listeners.delete(setView); };
   }, []);
   return [view, navigatePortal] as const;
