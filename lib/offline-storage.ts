@@ -16,12 +16,14 @@ export interface UniversitySnapshot {
   semesters?: Array<{ slot_year: string; semester_type: string }>;
   currentSemester?: { slot_year: string; semester_type: string } | null;
   attendanceItems?: any[];
+  attendanceSemester?: string;
   attendanceReports?: Record<string, any>;
   timetableEvents?: any[];
   academicsData?: any;
   marksData?: {
     semesters?: Array<{ slot_year: string; semester_type: string }>;
     courses?: any[];
+    coursesSemester?: string;
     courseDetails?: Record<string, { marks: any; consolidated: any }>;
     [key: string]: any;
   };

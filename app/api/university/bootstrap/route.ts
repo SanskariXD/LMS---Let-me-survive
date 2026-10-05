@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
           hasPin: !!dbUser?.pin_hash,
         },
         semesters: cachedSemesters,
-        currentSemester: cachedSemesters[0] || null,
+        currentSemester: cachedSemesters.find((s) => s.slot_year === '2026-27' && s.semester_type.toUpperCase() === 'FALL') || cachedSemesters[0] || null,
         profileAvailable: false,
         isOfflineCache: true,
         cachedAt,
@@ -160,8 +160,7 @@ export async function GET(request: NextRequest) {
 
     // Detect the current active semester
     const currentSemester =
-      semesters.find((s) => s.slot_year === '2025-26' && s.semester_type.toUpperCase() === 'SUMMER') ||
-      semesters.find((s) => s.semester_type.toUpperCase() === 'SUMMER') ||
+      semesters.find((s) => s.slot_year === '2026-27' && s.semester_type.toUpperCase() === 'FALL') ||
       semesters[0] ||
       null;
 

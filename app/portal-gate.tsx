@@ -298,15 +298,23 @@ export default function PortalGate() {
 
   if (checking) {
     return (
-      <main className="min-h-screen bg-[#f3f0fb] flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-8 shadow-xl border border-indigo-50 flex flex-col items-center gap-4 text-center max-w-xs w-full animate-in fade-in duration-300">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-            <RefreshCw className="w-8 h-8 animate-spin" />
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f3f0fb] p-6">
+        <div aria-hidden="true" className="absolute -top-24 left-1/4 h-96 w-96 rounded-full bg-violet-200/40 blur-3xl" />
+        <div aria-hidden="true" className="absolute -bottom-24 right-1/4 h-80 w-80 rounded-full bg-indigo-200/40 blur-3xl" />
+        <div role="status" aria-live="polite" className="relative flex w-full max-w-sm flex-col items-center rounded-[2rem] border border-white/80 bg-white/75 px-8 py-10 text-center shadow-xl shadow-indigo-900/5 backdrop-blur-xl">
+          <div className="relative mb-6 flex h-24 w-24 items-center justify-center">
+            <div aria-hidden="true" className="absolute inset-0 rounded-full border-2 border-indigo-100 border-t-indigo-500 animate-spin motion-reduce:animate-none" />
+            <div className="flex h-19 w-19 items-center justify-center rounded-full bg-white shadow-sm">
+              <GraduationCap aria-hidden="true" className="h-9 w-9 text-indigo-600" />
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Loading LMS²</h2>
-            <p className="text-xs text-slate-500 mt-1">Preparing your student portal…</p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-indigo-500">Let me survive</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">LMS²</h1>
+          <p className="mt-3 text-sm text-slate-500">Getting your student space ready…</p>
+          <div aria-hidden="true" className="mt-7 flex gap-1.5">
+            {[0, 1, 2].map((dot) => <span key={dot} className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse motion-reduce:animate-none" style={{ animationDelay: `${dot * 200}ms` }} />)}
           </div>
+          <p className="mt-5 text-[11px] text-slate-400">A little order in your college chaos.</p>
         </div>
       </main>
     );

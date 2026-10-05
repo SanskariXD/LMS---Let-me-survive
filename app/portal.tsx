@@ -43,7 +43,7 @@ import { ProfileView } from '@/components/portal/profile-view';
 import { ResourcesView } from '@/components/portal/resources-view';
 import {
   saveUniversitySnapshot,
-  getUniversitySnapshot,
+  getUniversitySnapshot as readUniversitySnapshot,
   clearUniversitySnapshot,
   formatCacheTimestamp,
   isUniversityExpectedDowntime,
@@ -390,6 +390,20 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       .catch(() => {});
   }, []);
 
+  // Unlabelled legacy caches may contain Summer data; only restore records for the selected term.
+  function getUniversitySnapshot(studentId: string, semester = activeSemester || '2026-27|FALL') {
+    const snapshot = readUniversitySnapshot(studentId);
+    if (!snapshot) return null;
+    return {
+      ...snapshot,
+      attendanceItems: snapshot.attendanceSemester === semester ? snapshot.attendanceItems : undefined,
+      marksData: snapshot.marksData ? {
+        ...snapshot.marksData,
+        courses: snapshot.marksData.coursesSemester === (activeMarksSemester || '2026-27|FALL') ? snapshot.marksData.courses : undefined,
+      } : undefined,
+    };
+  }
+
   const serial = useRef(0);
 
   async function loadMarksSemesters() {
@@ -404,7 +418,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       setMarksSemesters(sems);
       saveUniversitySnapshot(studentId, { marksData: { semesters: sems } });
       if (sems.length > 0) {
-        const preferred = sems.find((s) => s.slot_year === '2025-26' && s.semester_type === 'SUMMER') || sems[0];
+        const preferred = sems.find((s) => s.slot_year === '2026-27' && s.semester_type.toUpperCase() === 'FALL') || sems[0];
         const semKey = `${preferred.slot_year}|${preferred.semester_type}`;
         setActiveMarksSemester(semKey);
         await loadMarksTimetable(preferred.slot_year, preferred.semester_type);
@@ -413,6 +427,11 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       const snap = getUniversitySnapshot(studentId);
       if (snap?.marksData?.semesters) {
         setMarksSemesters(snap.marksData.semesters);
+        const preferred = snap.marksData.semesters.find((s) => s.slot_year === '2026-27' && s.semester_type.toUpperCase() === 'FALL') || snap.marksData.semesters[0];
+        if (preferred) {
+          setActiveMarksSemester(key(preferred));
+          await loadMarksTimetable(preferred.slot_year, preferred.semester_type);
+        }
         setIsUsingSavedData(true);
         setSavedDataTimestamp(snap.timestamp);
       } else {
@@ -436,9 +455,10 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       if (!res.ok) throw new Error(data.error || 'Failed to load courses');
       const list = data.allRegistrations?.length ? data.allRegistrations : (data.registrations || []);
       setMarksCourses(list);
+      saveUniversitySnapshot(studentId, { marksData: { courses: list, coursesSemester: `${slotYear}|${semesterType}` } });
     } catch (err: any) {
       const snap = getUniversitySnapshot(studentId);
-      if (snap?.marksData?.courses) {
+      if (snap?.marksData?.courses && snap.marksData.coursesSemester === `${slotYear}|${semesterType}`) {
         setMarksCourses(snap.marksData.courses);
         setIsUsingSavedData(true);
         setSavedDataTimestamp(snap.timestamp);
@@ -516,7 +536,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       setAcademicsData(data);
       saveUniversitySnapshot(studentId, { academicsData: data });
       if (mergedSems.length > 0 && !activeAcademicsSemester) {
-        const preferred = mergedSems.find((s: any) => s.slot_year === '2025-26' && s.semester_type === 'SUMMER') || mergedSems[0];
+        const preferred = mergedSems.find((s: any) => s.slot_year === '2026-27' && s.semester_type.toUpperCase() === 'FALL') || mergedSems[0];
         setActiveAcademicsSemester(`${preferred.slot_year}|${preferred.semester_type}`);
       }
     } catch (err: any) {
@@ -640,27 +660,43 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   }, [view]);
 
 
-  // Inactivity / Idle Timer: 15 minutes of no user interaction
+  // Pause only after a full hour without interaction, including time in a background tab.
   useEffect(() => {
-    let idleTimeoutId: NodeJS.Timeout;
-    const IDLE_TIME_MS = 15 * 60 * 1000; // 15 minutes
-
-    const resetIdleTimer = () => {
-      clearTimeout(idleTimeoutId);
-      idleTimeoutId = setTimeout(() => {
+    if (isIdleLocked || isReauthModalOpen) return;
+    const idleTimeMs = 60 * 60 * 1000;
+    let lastActivity = Date.now();
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const checkIdle = () => {
+      const remaining = idleTimeMs - (Date.now() - lastActivity);
+      if (remaining <= 0) setIsIdleLocked(true);
+      else timeoutId = setTimeout(checkIdle, remaining);
+    };
+    const recordActivity = () => {
+      if (Date.now() - lastActivity >= idleTimeMs) {
+        clearTimeout(timeoutId);
         setIsIdleLocked(true);
-      }, IDLE_TIME_MS);
+        return;
+      }
+      lastActivity = Date.now();
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(checkIdle, idleTimeMs);
     };
-
-    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
-    events.forEach((ev) => window.addEventListener(ev, resetIdleTimer, { passive: true }));
-    resetIdleTimer();
-
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        clearTimeout(timeoutId);
+        checkIdle();
+      }
+    };
+    const events = ['pointermove', 'pointerdown', 'keydown', 'touchstart', 'scroll', 'click'];
+    events.forEach((event) => window.addEventListener(event, recordActivity, { passive: true }));
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    timeoutId = setTimeout(checkIdle, idleTimeMs);
     return () => {
-      clearTimeout(idleTimeoutId);
-      events.forEach((ev) => window.removeEventListener(ev, resetIdleTimer));
+      clearTimeout(timeoutId);
+      events.forEach((event) => window.removeEventListener(event, recordActivity));
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, []);
+  }, [isIdleLocked, isReauthModalOpen]);
 
   function handleSessionExpired() {
     const studentId = session?.user?.enrollment || 'student';
@@ -681,9 +717,12 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     setIsReauthModalOpen(true);
   }
 
-  async function handleReauthPinSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (reauthSubmitting || reauthPin.length !== 6) return;
+  const reauthInFlight = useRef(false);
+
+  async function handleReauthPinSubmit(e?: React.FormEvent, pin = reauthPin) {
+    e?.preventDefault();
+    if (reauthInFlight.current || pin.length !== 6) return;
+    reauthInFlight.current = true;
     setReauthSubmitting(true);
     setReauthError('');
 
@@ -701,7 +740,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pin: reauthPin,
+          pin,
           userId: targetUserId || undefined,
           enrollment: activeEnrollment || undefined,
         }),
@@ -732,6 +771,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       setReauthPin('');
       setReauthError(err.message || 'Failed to unlock portal.');
     } finally {
+      reauthInFlight.current = false;
       setReauthSubmitting(false);
     }
   }
@@ -740,6 +780,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     if (!semKey) return;
     const ticket = ++serial.current;
     setLoading(true);
+    setAttendanceItems(null);
     setError('');
     const [year, type] = semKey.split('|');
     const studentId = session?.user?.enrollment || 'student';
@@ -749,7 +790,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       if (ticket !== serial.current) return;
       setAttendanceItems(data.courses);
       setIsUsingSavedData(false);
-      saveUniversitySnapshot(studentId, { attendanceItems: data.courses });
+      saveUniversitySnapshot(studentId, { attendanceItems: data.courses, attendanceSemester: semKey });
     } catch (e: any) {
       if (ticket !== serial.current) return;
       if (e.status === 401) {
@@ -757,7 +798,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
         return;
       }
       // Check if snapshot exists
-      const snap = getUniversitySnapshot(studentId);
+      const snap = getUniversitySnapshot(studentId, semKey);
       if (snap?.attendanceItems && snap.attendanceItems.length > 0) {
         setAttendanceItems(snap.attendanceItems);
         setIsUsingSavedData(true);
@@ -774,8 +815,8 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   function applySession(data: Session) {
     setSession(data);
     const active =
+      data.semesters.find((s) => s.slot_year === '2026-27' && s.semester_type.toUpperCase() === 'FALL') ||
       data.currentSemester ||
-      data.semesters.find((s) => s.slot_year === '2025-26' && s.semester_type.toUpperCase() === 'SUMMER') ||
       data.semesters[0];
     const initialSemKey = active ? key(active) : '';
     if (initialSemKey) {
@@ -803,8 +844,8 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
         profileAvailable: true,
       });
       const active =
+        (snapshot.semesters || []).find((s) => s.slot_year === '2026-27' && s.semester_type.toUpperCase() === 'FALL') ||
         snapshot.currentSemester ||
-        (snapshot.semesters || []).find((s) => s.slot_year === '2025-26' && s.semester_type.toUpperCase() === 'SUMMER') ||
         (snapshot.semesters || [])[0];
       if (active) {
         setActiveSemester(key(active));
@@ -875,7 +916,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
   // Silent background token and data refresh (keeps session active without disturbing user)
   useEffect(() => {
-    if (!activeSemester) return;
+    if (!activeSemester || isIdleLocked || isReauthModalOpen) return;
     const interval = setInterval(() => {
       const [year, type] = activeSemester.split('|');
       request('attendance?' + new URLSearchParams({ slot_year: year, semester_type: type }))
@@ -883,7 +924,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
           if (data?.courses && data.courses.length > 0) {
             setAttendanceItems(data.courses);
             setIsUsingSavedData(false);
-            saveUniversitySnapshot(session?.user?.enrollment || 'student', { attendanceItems: data.courses });
+            saveUniversitySnapshot(session?.user?.enrollment || 'student', { attendanceItems: data.courses, attendanceSemester: activeSemester });
           }
         })
         .catch((e: any) => {
@@ -893,7 +934,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
         });
     }, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [activeSemester, session]);
+  }, [activeSemester, session, isIdleLocked, isReauthModalOpen]);
 
   async function refresh() {
     const studentId = session?.user?.enrollment || 'student';
@@ -2909,14 +2950,18 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
               </p>
             </div>
 
-            <form onSubmit={handleReauthPinSubmit} className="w-full space-y-4 pt-2">
+            <form onSubmit={(event) => { void handleReauthPinSubmit(event); }} className="w-full space-y-4 pt-2">
               <div className="flex flex-col items-center gap-2 py-1">
                 <InputOTP
                   maxLength={6}
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={reauthPin}
-                  onChange={setReauthPin}
+                  onChange={(value) => {
+                    setReauthPin(value);
+                    setReauthError('');
+                    if (isIdleLocked && value.length === 6) void handleReauthPinSubmit(undefined, value);
+                  }}
                   disabled={reauthSubmitting}
                   autoFocus
                   aria-label="Six-digit portal PIN"
@@ -2949,6 +2994,12 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                 </div>
               )}
 
+              {isIdleLocked ? (
+                <div role="status" aria-live="polite" className="flex min-h-6 items-center justify-center gap-2 text-xs font-medium text-indigo-600">
+                  {reauthSubmitting && <RefreshCw className="h-4 w-4 animate-spin motion-reduce:animate-none" />}
+                  {reauthSubmitting ? 'Resuming your portal…' : 'Your portal resumes automatically after the sixth digit.'}
+                </div>
+              ) : (
               <Button
                 type="submit"
                 disabled={reauthSubmitting || reauthPin.length !== 6}
@@ -2966,6 +3017,8 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                   </>
                 )}
               </Button>
+
+              )}
 
               <div className="pt-2 flex flex-col items-center gap-2">
                 <button
