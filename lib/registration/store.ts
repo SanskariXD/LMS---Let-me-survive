@@ -1,6 +1,7 @@
 import { databaseClient } from '@/db';
 import { randomUUID } from 'node:crypto';
-import type { buildPlan, Outcome } from './payload';
+import { defaultTerm, type RegistrationTerm, type buildPlan, type Outcome } from './payload';
+const termKey = (term: RegistrationTerm) => `${term.slot_year}|${term.semester_type}`;
 
 type PlanItems = ReturnType<typeof buildPlan>;
 let ready: Promise<void> | undefined;
@@ -35,24 +36,24 @@ export async function acquireUserLock(userId: string) {
   if (!result.rowsAffected) throw new Error('Another registration request is running for this account. Wait for its result.');
   return async () => { await databaseClient.execute({sql: 'DELETE FROM registration_user_locks WHERE user_id = ? AND owner = ?', args: [userId, owner]}); };
 }
-export async function claimAttempt(userId: string, courseCode: string, payload: Record<string, string>, retryRejected = false) {
+export async function claimAttempt(userId: string, courseCode: string, payload: Record<string, string>, retryRejected = false, term: RegistrationTerm = defaultTerm) {
   const payloadJson = JSON.stringify(payload);
-  const result = await databaseClient.execute({sql: 'INSERT OR IGNORE INTO registration_attempts VALUES (?, ?, ?, ?, ?, ?, ?)', args: [userId, '2026-27|FALL', courseCode, payloadJson, 'pending', 'Request outcome not yet confirmed. Verify in the university portal before retrying.', Date.now()]});
+  const result = await databaseClient.execute({sql: 'INSERT OR IGNORE INTO registration_attempts VALUES (?, ?, ?, ?, ?, ?, ?)', args: [userId, termKey(term), courseCode, payloadJson, 'pending', 'Request outcome not yet confirmed. Verify in the university portal before retrying.', Date.now()]});
   if (result.rowsAffected) return null;
   if (retryRejected) {
-    const retry = await databaseClient.execute({sql: `UPDATE registration_attempts SET status = 'pending', message = ?, payload_json = ?, updated_at = ? WHERE user_id = ? AND term = ? AND course_code = ? AND status = 'rejected'`, args: ['Retry outcome not yet confirmed.', payloadJson, Date.now(), userId, '2026-27|FALL', courseCode]});
+    const retry = await databaseClient.execute({sql: `UPDATE registration_attempts SET status = 'pending', message = ?, payload_json = ?, updated_at = ? WHERE user_id = ? AND term = ? AND course_code = ? AND status = 'rejected'`, args: ['Retry outcome not yet confirmed.', payloadJson, Date.now(), userId, termKey(term), courseCode]});
     if (retry.rowsAffected) return null;
   }
-  const previous = await databaseClient.execute({sql: 'SELECT status, message FROM registration_attempts WHERE user_id = ? AND term = ? AND course_code = ?', args: [userId, '2026-27|FALL', courseCode]});
+  const previous = await databaseClient.execute({sql: 'SELECT status, message FROM registration_attempts WHERE user_id = ? AND term = ? AND course_code = ?', args: [userId, termKey(term), courseCode]});
   const row = previous.rows[0];
   return { outcome: row.status === 'pending' ? 'uncertain' : String(row.status) as Outcome, message: String(row.message), sent: false };
 }
-export async function finishAttempt(userId: string, courseCode: string, outcome: Outcome, message: string) {
-  await databaseClient.execute({sql: 'UPDATE registration_attempts SET status = ?, message = ?, updated_at = ? WHERE user_id = ? AND term = ? AND course_code = ?', args: [outcome, message, Date.now(), userId, '2026-27|FALL', courseCode]});
+export async function finishAttempt(userId: string, courseCode: string, outcome: Outcome, message: string, term: RegistrationTerm = defaultTerm) {
+  await databaseClient.execute({sql: 'UPDATE registration_attempts SET status = ?, message = ?, updated_at = ? WHERE user_id = ? AND term = ? AND course_code = ?', args: [outcome, message, Date.now(), userId, termKey(term), courseCode]});
 }
 
-export async function previousAttempts(userId: string) {
+export async function previousAttempts(userId: string, term: RegistrationTerm = defaultTerm) {
   await initializeStore();
-  const result = await databaseClient.execute({sql: 'SELECT course_code, status, message FROM registration_attempts WHERE user_id = ? AND term = ?', args: [userId, '2026-27|FALL']});
+  const result = await databaseClient.execute({sql: 'SELECT course_code, status, message FROM registration_attempts WHERE user_id = ? AND term = ?', args: [userId, termKey(term)]});
   return Object.fromEntries(result.rows.map((row) => [String(row.course_code), {outcome: row.status === 'pending' ? 'uncertain' : String(row.status), message: String(row.message)}]));
 }

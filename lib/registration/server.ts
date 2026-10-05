@@ -4,7 +4,7 @@ import { getUserById } from '@/lib/db/queries';
 import { universityRequest, getValidTokenForUser } from '@/lib/university/client';
 import { universityConfig } from '@/lib/university/config';
 import { UNIVERSITY_ENDPOINTS } from '@/lib/university/endpoints';
-import { classifyRegistrationResponse } from './payload';
+import { classifyRegistrationResponse, defaultTerm, type RegistrationTerm } from './payload';
 import { claimAttempt, finishAttempt } from './store';
 
 export async function registrationIdentity(request: NextRequest) {
@@ -17,10 +17,10 @@ export async function registrationIdentity(request: NextRequest) {
   if (!user) throw new Error('Account could not be verified.');
   return { userId: session.userId, name: user.student_name, enrollment: user.enrollment_number };
 }
-export async function livePreflight(userId: string) {
+export async function livePreflight(userId: string, term: RegistrationTerm = defaultTerm) {
   const status = await universityRequest<{enabled?: boolean}>(UNIVERSITY_ENDPOINTS.registrationStatus, {userId, cache: 'no-store'});
   if (status?.enabled !== true) throw new Error('University course registration is closed or its status could not be verified.');
-  const timetable = await universityRequest<Record<string, unknown>>(UNIVERSITY_ENDPOINTS.myTimetable('2026-27', 'FALL'), {userId, cache: 'no-store'});
+  const timetable = await universityRequest<Record<string, unknown>>(UNIVERSITY_ENDPOINTS.myTimetable(term.slot_year, term.semester_type), {userId, cache: 'no-store'});
   const lists = ['registrations', 'allRegistrations', 'projectRegistrations'].filter((field) => Array.isArray(timetable?.[field]));
   if (!lists.length) throw new Error('Your existing registrations could not be verified. No request was sent.');
   const codes = new Set<string>();
@@ -34,7 +34,7 @@ export async function livePreflight(userId: string) {
 export async function sendRegistration(userId: string, payload: Record<string, string>, retryRejected = false) {
   // Resolve authentication BEFORE marking a potentially sent request. Never use default credentials.
   const token = await getValidTokenForUser(userId);
-  const previous = await claimAttempt(userId, payload.course_code, payload, retryRejected);
+  const previous = await claimAttempt(userId, payload.course_code, payload, retryRejected, {slot_year:payload.slot_year, semester_type:payload.semester_type as RegistrationTerm['semester_type']});
   if (previous) return previous;
   let outcome: 'success' | 'rejected' | 'uncertain' = 'uncertain';
   let message = 'No definite response was received. Check the university portal before trying this course again.';
@@ -59,6 +59,6 @@ export async function sendRegistration(userId: string, payload: Record<string, s
   } catch {
     // A timeout can happen after the university has committed the registration. Never resubmit it automatically.
   }
-  await finishAttempt(userId, payload.course_code, outcome, message);
+  await finishAttempt(userId, payload.course_code, outcome, message, {slot_year:payload.slot_year, semester_type:payload.semester_type as RegistrationTerm['semester_type']});
   return { outcome, message, sent: true };
 }

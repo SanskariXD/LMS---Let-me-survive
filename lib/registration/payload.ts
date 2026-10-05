@@ -15,7 +15,10 @@ export const selectionSchema = z.object({
 }).strict();
 export type RegistrationSelection = z.infer<typeof selectionSchema>;
 export type RegistrationPayload = Record<string, string>;
-export const prepareSchema = z.object({ courses: z.array(selectionSchema).min(1).max(30) }).strict();
+export const termSchema = z.object({slot_year: z.string().regex(/^20\d{2}-\d{2}$/).refine(value => Number(value.slice(5)) === (Number(value.slice(0,4)) + 1) % 100, 'Use a consecutive academic year, for example 2026-27.'), semester_type: z.enum(['FALL', 'WINTER', 'SUMMER'])}).strict();
+export type RegistrationTerm = z.infer<typeof termSchema>;
+export const defaultTerm: RegistrationTerm = {slot_year: '2026-27', semester_type: 'FALL'};
+export const prepareSchema = z.object({ courses: z.array(selectionSchema).min(1).max(30), term: termSchema.default(defaultTerm) }).strict();
 export const executeSchema = z.object({ planId: z.string().uuid(), courseCode: z.string().regex(/^[A-Z]{2,6}[0-9]{3,6}$/), retryRejected: z.boolean().optional() }).strict();
 
 function required(value: string, label: string) {
@@ -33,10 +36,10 @@ function labSlot(value: string) {
   }
   return value;
 }
-export function buildRegistrationPayload(raw: unknown): RegistrationPayload {
+export function buildRegistrationPayload(raw: unknown, term: RegistrationTerm = defaultTerm): RegistrationPayload {
   const course = selectionSchema.parse(raw);
   if (!/^[A-Z]{2,6}[0-9]{3,6}$/.test(course.course_code)) throw new Error('Choose one exact official course code.');
-  const base = { course_code: course.course_code, slot_year: '2026-27', semester_type: 'FALL' };
+  const base = {course_code: course.course_code, ...termSchema.parse(term)};
   if (course.type === 'THEORY_LAB') return {
     ...base,
     theory_slot: theorySlot(course.theory_slot),
@@ -56,7 +59,7 @@ export function buildRegistrationPayload(raw: unknown): RegistrationPayload {
     faculty_name: required(lab ? course.practical_faculty : course.theory_faculty, 'Faculty') };
 }
 
-export function buildPlan(courses: RegistrationSelection[]) {
+export function buildPlan(courses: RegistrationSelection[], term: RegistrationTerm = defaultTerm, allowUnresolved = false) {
   const codes = new Set<string>();
   const timed: Array<{day: number; start: number; end: number; code: string}> = [];
   return courses.map((rawCourse) => {
@@ -64,7 +67,9 @@ export function buildPlan(courses: RegistrationSelection[]) {
     if (codes.has(course.course_code)) throw new Error(`Duplicate course: ${course.course_code}`);
     codes.add(course.course_code);
     try {
-      const payload = buildRegistrationPayload(course);
+      // Validate slot intent independently of catalogue venue/faculty, which are never trusted for sending.
+      const intent = {...course, theory_venue: 'Official lookup pending', practical_venue: 'Official lookup pending', theory_faculty: 'Official lookup pending', practical_faculty: 'Official lookup pending'};
+      const payload = buildRegistrationPayload(allowUnresolved ? intent : course, term);
       const slots = course.type === 'PROJECT' ? [] : events({
         theory: course.type === 'LAB' ? '' : course.theory_slot,
         lab: course.type === 'THEORY' ? '' : course.practical_slot,

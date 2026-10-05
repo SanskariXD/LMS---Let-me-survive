@@ -30,7 +30,7 @@ test('HTTP errors and inconclusive responses are never treated as successful', (
 });
 test('durable store binds plans to account, expires reviews, locks across tabs and blocks uncertain/successful retries', async () => {
   const client=createClient({url:'file::memory:'});
-  const store=load('lib/registration/store.ts',{'@/db':{databaseClient:client}});
+  const store=load('lib/registration/store.ts',{'@/db':{databaseClient:client},'./payload':payloads});
   const items=payloads.buildPlan([blank]), plan=await store.createPlan('user-a',items);
   assert.equal((await store.getPlan(plan.id,'user-a')).length,1);
   await assert.rejects(store.getPlan(plan.id,'user-b'), /expired/);
@@ -81,13 +81,14 @@ test('one authenticated fixed POST; timeouts are uncertain with no auto retry; d
   const duplicate=serverHarness(async()=>{throw Error('must not send')},{previous:{outcome:'success',sent:false,message:'Done'}});
   assert.equal((await duplicate.api.sendRegistration('user-a',payloads.buildRegistrationPayload(blank))).sent,false);
 });
-test('execute route uses only the saved payload and skips existing courses; injected payloads are rejected', async () => {
+test('execute route uses the saved intent and official payload and skips existing courses; injected payloads are rejected', async () => {
   let sent=0, releases=0;
   const items=payloads.buildPlan([blank]);
   const mocks={
     'next/server':{NextResponse:{json:(body,options)=>({body,status:options?.status||200})}},
     '@/lib/registration/payload':payloads,
     '@/lib/registration/server':{registrationIdentity:async()=>({userId:'owner'}),livePreflight:async()=>new Set(),sendRegistration:async(user,payload)=>{assert.equal(user,'owner');assert.deepEqual(plain(payload),plain(items[0].payload));sent++;return {outcome:'success'}}},
+    '@/lib/registration/lookup':{resolveOfficialCourse:async(user,course,term)=>{assert.equal(user,'owner');assert.equal(course.course_code,'CSE2008');assert.equal(term.semester_type,'FALL');return items[0]}},
     '@/lib/registration/store':{getPlan:async(id,user)=>{assert.equal(user,'owner');return items},acquireUserLock:async()=>async()=>{releases++},finishAttempt:async()=>{}}
   };
   const route=load('app/api/course-registration/execute/route.ts',mocks);
@@ -104,10 +105,11 @@ test('Slotwise exports the displayed option with chosen lab pair, account and no
   const fn=source.slice(source.indexOf('function exportRegistrationPlan(){'));
   const storage=new Map([['slotwise_device_user',JSON.stringify({enrollment:'TEST123',token:'never-export'})]]);
   let posted;
-  const context={results:[[{code:'CSE2008',name:'Network',theory:'G2',lab:'L19+L20',theoryFaculty:'Theory Professor',labFaculty:'Lab Professor'}]],index:0,Date,
+  const context={results:[[{code:'CSE2008',name:'Network',theory:'G2',lab:'L19+L20',theoryFaculty:'Theory Professor',labFaculty:'Lab Professor'}]],index:0,Date,term:{slot_year:'2026-27',semester_type:'WINTER'},
     localStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},window:{location:{origin:'https://lms.test'},parent:{postMessage:(value,target)=>posted={value,target}}},$:()=>({}),esc:x=>x};
   vm.runInNewContext(fn,context);vm.runInNewContext('exportRegistrationPlan()',context);
   assert.equal(posted.target,'https://lms.test');assert.equal(posted.value.plan.enrollment,'TEST123');
+  assert.equal(posted.value.plan.semester_type,'WINTER');
   assert.equal(posted.value.plan.courses[0].practical_slot,'L19+L20');assert.equal(posted.value.plan.courses[0].theory_venue,'');
   assert.equal(posted.value.plan.courses[0].practical_faculty,'Lab Professor');assert.ok(!storage.get('slotwise_registration_plan_v1').includes('never-export'));
 });
@@ -115,4 +117,63 @@ test('Slotwise exports the displayed option with chosen lab pair, account and no
 test('edited slots are checked against the same Slotwise engine before review', () => {
   assert.throws(()=>payloads.buildPlan([{...blank,type:'THEORY',theory_slot:'A2'},{...blank,type:'THEORY',course_code:'CSE3008',theory_slot:'A2'}]), /clash/);
   assert.throws(()=>payloads.buildPlan([{...blank,type:'THEORY',theory_slot:'TG2'}]), /Unknown theory slot/);
+});
+
+const offerings=load('lib/registration/offerings.ts', {'./payload':payloads});
+const official={course_info:{course_code:'CSE2033',course_name:'Cloud Computing for IoT',theory:3,practical:0,credits:3,course_type:'T'},offerings:[{course_code:'CSE2033',course_title:'Cloud Computing for IoT',course_type:'T',slots_offered:'B1',venue:'515',faculty_name:'Dr. Varikuti Harinadh',available_seats:'3'}]};
+const cloud={...blank,course_code:'CSE2033',type:'THEORY',theory_slot:'B1',theory_venue:'wrong room',theory_faculty:'old misspelling'};
+test('official course + slot matching replaces catalogue metadata and carries Winter through payload',()=>{
+  const resolved=offerings.resolveSelection(cloud,{slot_year:'2026-27',semester_type:'WINTER'},official);
+  assert.equal(resolved.payload.venue,'515');assert.equal(resolved.payload.faculty_name,'Dr. Varikuti Harinadh');assert.equal(resolved.payload.semester_type,'WINTER');
+  assert.throws(()=>offerings.resolveSelection({...cloud,theory_slot:'A2'},payloads.defaultTerm,official),/not in/);
+  assert.throws(()=>offerings.resolveSelection({...cloud,course_code:'CSE2034'},payloads.defaultTerm,official),/unavailable/);
+  assert.throws(()=>offerings.resolveSelection({...cloud,type:'LAB'},payloads.defaultTerm,official),/type differs/);
+});
+test('ambiguous faculty, missing rooms and zero seats are blocked without guessing',()=>{
+  const multiple={...official,offerings:[...official.offerings,{...official.offerings[0],venue:'516',faculty_name:'Dr. Other Person'}]};
+  assert.throws(()=>offerings.resolveSelection(cloud,payloads.defaultTerm,multiple),/Multiple sections/);
+  assert.equal(offerings.resolveSelection({...cloud,theory_faculty:'Varikuti Harinadh'},payloads.defaultTerm,multiple).payload.venue,'515');
+  for (const change of [{venue:''},{faculty_name:''},{available_seats:'0'}]) assert.throws(()=>offerings.resolveSelection(cloud,payloads.defaultTerm,{...official,offerings:[{...official.offerings[0],...change}]}));
+});
+test('theory and lab keep their own official rooms and professors',()=>{
+  const combined={course_info:{course_code:'CSE2008',course_name:'Networks',theory:3,practical:2,credits:4,course_type:'TP'},offerings:[{course_code:'CSE2008',course_title:'Networks',course_type:'T',slots_offered:'G2',venue:'330',faculty_name:'Theory Professor'},{course_code:'CSE2008',course_title:'Networks',course_type:'P',slots_offered:'L19+L20',venue:'429',faculty_name:'Lab Professor'}]};
+  const payload=offerings.resolveSelection(blank,payloads.defaultTerm,combined).payload;
+  assert.equal(payload.theory_venue,'330');assert.equal(payload.practical_venue,'429');assert.equal(payload.theory_faculty,'Theory Professor');assert.equal(payload.practical_faculty,'Lab Professor');
+});
+test('lookup URL uses the selected term and cannot target arbitrary endpoints',async()=>{
+  let called;
+  const lookup=load('lib/registration/lookup.ts',{'./payload':payloads,'./offerings':offerings,'@/lib/university/client':{universityRequest:async(path,options)=>{called={path,options};return official}}});
+  await lookup.fetchOfferings('owner','CSE2033',{slot_year:'2027-28',semester_type:'WINTER'});
+  assert.equal(called.path,'/api/course-registration/course-offerings/CSE2033/2027-28/WINTER');assert.equal(called.options.userId,'owner');assert.equal(called.options.cache,'no-store');
+  await assert.rejects(lookup.fetchOfferings('owner','../withdraw',{slot_year:'2026-27',semester_type:'FALL'}));
+});
+test('attempts are isolated by academic term',async()=>{
+  const client=createClient({url:'file::memory:'});
+  const store=load('lib/registration/store.ts',{'@/db':{databaseClient:client},'./payload':payloads});
+  await store.initializeStore();
+  const fall=payloads.buildRegistrationPayload(cloud),winter=payloads.buildRegistrationPayload(cloud,{slot_year:'2026-27',semester_type:'WINTER'});
+  assert.equal(await store.claimAttempt('owner','CSE2033',fall,false,payloads.defaultTerm),null);
+  await store.finishAttempt('owner','CSE2033','success','Done',payloads.defaultTerm);
+  assert.equal(await store.claimAttempt('owner','CSE2033',winter,false,{slot_year:'2026-27',semester_type:'WINTER'}),null);
+  assert.equal((await store.previousAttempts('owner',payloads.defaultTerm)).CSE2033.outcome,'success');
+  assert.equal((await store.previousAttempts('owner',{slot_year:'2026-27',semester_type:'WINTER'})).CSE2033.outcome,'uncertain');client.close();
+});
+test('unresolved official lookup prevents mutation and releases account lock',async()=>{
+  let sent=0,released=0;
+  const route=load('app/api/course-registration/execute/route.ts',{
+    'next/server':{NextResponse:{json:(body,options)=>({body,status:options?.status||200})}},
+    '@/lib/registration/payload':payloads,
+    '@/lib/registration/server':{registrationIdentity:async()=>({userId:'owner'}),livePreflight:async()=>new Set(),sendRegistration:async()=>{sent++}},
+    '@/lib/registration/lookup':{resolveOfficialCourse:async()=>{throw Error('No official venue')}},
+    '@/lib/registration/store':{getPlan:async()=>payloads.buildPlan([cloud],payloads.defaultTerm,true),acquireUserLock:async()=>async()=>{released++},finishAttempt:async()=>{}}
+  });
+  const result=await route.POST({text:async()=>JSON.stringify({planId:require('node:crypto').randomUUID(),courseCode:'CSE2033'})});
+  assert.equal(result.body.outcome,'blocked');assert.equal(result.body.sent,false);assert.equal(sent,0);assert.equal(released,1);
+});
+test('Slotwise can add missing official courses; combined links are not invented',async()=>{
+  const {catalogueFromOfferings}=await import('../public/slotwise/offerings.mjs');
+  const course=catalogueFromOfferings(official,'CSE2033');
+  assert.equal(course.options[0].theory,'B1');assert.equal(course.options[0].theoryVenue,'515');assert.equal(course.options[0].theoryFaculty,'Dr. Varikuti Harinadh');
+  const bad={...official,course_info:{...official.course_info,theory:3,practical:2},offerings:[...official.offerings,{...official.offerings[0],slots_offered:'B2'},{...official.offerings[0],slots_offered:'L1+L2'}]};
+  assert.throws(()=>catalogueFromOfferings(bad,'CSE2033'),/links/);
 });

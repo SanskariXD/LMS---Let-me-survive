@@ -2,43 +2,38 @@
 
 ## Student flow
 
-1. Open **Course Registration** in the LMS² side navigation.
-2. Open Slotwise, generate options and choose **Use this timetable** on the final option. Only courses actually included in that option are exported.
-3. Verify one exact course code per row, the course type, slots, separate theory/lab venues, and exact official faculty names. Missing information is not invented. The static catalogue is a planning aid, not a live seat catalogue.
-4. Select the courses to add, then choose **Review courses**. This is read-only against the university: registration status and existing timetable are checked.
-5. Review the account, Fall 2026–27 term, exact JSON payloads and courses already registered. Confirm the selections, then **Register selected courses**.
-6. Follow per-course results. **Stop after current course** stops the remaining queue; it does not cancel a request already sent. Leaving the page also stops the remaining queue.
+1. Open Course Registration, choose the academic year and semester (Fall 2026–27 by default), then open Slotwise.
+2. Select courses and sections. Slotwise attempts to refresh each selected course using official offerings. Use **Load official** with a course code to add missing courses or refresh outdated sections. Generate the timetable and choose **Use this timetable**. Only courses in that displayed option are exported.
+3. The LMS list is read-only. Official venue and faculty lookups start automatically in groups of four. Unavailable or ambiguous details show a red badge with a reason. Edit the timetable inside Slotwise.
+4. Confirm the account and selected timetable, then choose Register. Live registration status and existing registrations are checked. For each course, a fresh offerings GET resolves its venue and faculty immediately before its registration POST. Courses run sequentially without waiting for every course's offerings first.
+5. Follow per-course results. An unresolved course sends no registration request, and the next course can continue. Explicitly retry blocked or rejected courses. An uncertain response stops the queue and must be checked in the university timetable.
 
-## Data path
+## Official offerings and term handling
 
-`public/slotwise/app.mjs` exports a versioned account-bound selection to same-origin storage and, inside the embedded planner, to its parent using an exact target origin. The registration view accepts only messages from its own planner iframe and same origin. No PIN, token or password is exported.
+The authenticated server performs GET `/api/course-registration/course-offerings/{course_code}/{slot_year}/{semester_type}`. Tokens stay on the server. The lookup is a same-origin POST from the browser only to support session/origin checks; the upstream university operation is a GET.
 
-`lib/registration/payload.ts` validates selections and builds the four request shapes: theory + lab uses separate theory/practical fields; theory-only and lab-only use slot_name/venue/faculty_name; project uses PROJECT, a verified faculty, an explicit venue or N/A, and course_type PRJ as supplied in the reference. Multiple combined lab pairs are blocked until their university payload format is verified.
+The provided response has `course_info` and `offerings`, with `slots_offered`, `venue`, `faculty_name` and optional `available_seats`. The resolver verifies the course code on the response and every offering, checks course type, then matches the selected slot exactly. A unique offering corrects outdated catalogue faculty spelling. Multiple offerings for the same slot require one unique faculty match; rooms are never chosen arbitrarily. Theory and practical selections resolve separately into their respective fields. Missing rooms/names, zero or unverified seat counts, type mismatches and unknown formats block that course.
 
-`POST /api/course-registration/prepare` authenticates the signed session, checks Origin, validates the entire selection, performs live checks and stores an immutable 10-minute review plan bound to that user. It returns payload previews and previous results.
+The year and semester are validated and carried with the exported plan, upstream offerings URL, timetable check, registration payload and durable attempt key. Selecting Winter switches all these together. The bundled Fall 2026–27 catalogue is not used for other terms; those terms require loading official courses by code.
 
-`POST /api/course-registration/execute` accepts only planId, courseCode and an optional explicit retryRejected flag. The client cannot provide a replacement payload, user ID, endpoint or token. The server retrieves the reviewed payload, obtains an account-wide database lock, repeats live checks and skips any course code already registered, regardless of its current section.
+Official planner entries use recognised explicit slot strings. Existing theory/lab links can be refreshed; a new combined course with multiple sections is not cross-paired without verified linkage. Unsupported combined response formats require an official response example before adding a parser. The supplied theory-only response is supported. Course-level listings and semester offerings cannot be inferred when the university endpoint is unavailable.
 
-The server uses the current user's university token and the existing configured authentication header. It makes exactly one POST to `/api/course-registration/register`, with redirect following and automatic mutation retries disabled. It runs in the existing Mumbai region so the HTTPS application can reach the HTTP university service without mixed-content restrictions.
+## Architecture and safeguards
 
-## Safeguards and persistence
+- Slotwise exports versioned, account-bound data using same-origin storage and an exact-origin iframe message. No credential is exported. The parent checks both origin and iframe source.
+- `payload.ts` validates selection intent, duplicates, course codes, supported slots and clashes using the same planner engine. Four payload shapes are supported: theory + lab, lab only, theory only and project. Combined lab pairs beyond one adjacent pair are blocked pending a verified payload format.
+- `/resolve` performs read-only background lookups. `/offerings` supplies official planner data. Both require the signed session, matching Origin, bounded request size and strict input schemas.
+- `/prepare` validates and stores immutable, account-bound slot/faculty intent for ten minutes, including the selected term. It checks the live enabled flag and existing timetable. Its pending metadata placeholders are never sent to the university.
+- `/execute` accepts only planId, courseCode and an optional explicit retryRejected flag. It uses the saved intent and a fresh official lookup, rather than a client-supplied payload, endpoint, token or user ID.
+- Account-wide database locks serialize requests across tabs and instances. Existing registered course codes are skipped regardless of section; no delete, withdrawal, replacement or capacity modification exists in this flow.
+- The current account's bearer token is attached server-side to exactly one fixed `/api/course-registration/register` POST. Redirects and automatic mutation retries are disabled. A durable pending marker is written before sending, with a unique user/term/course key.
+- Successful, pending and uncertain attempts cannot be automatically resent. Only confirmed rejection can be explicitly retried. A blocked lookup has sent nothing and may be retried.
+- Timeouts, crashes, ambiguous 2xx and 5xx responses are uncertain. Check the university timetable before attempting more registrations. On a subsequent live check, a present course is safely skipped.
+- Stop and page navigation stop the remaining queue after the active course; they do not cancel a POST already sent.
+- Vercel requires the existing persistent Turso/LibSQL database; the ephemeral file fallback cannot authorize registration. Routes use the existing Mumbai region and avoid browser mixed-content requests.
 
-- Only the fixed registration endpoint is used. There is no university delete, withdraw, capacity change or section replacement operation.
-- Invalid/missing fields, ambiguous course codes, duplicate course codes, timetable clashes and unverified combined labs are rejected. Final edited slots are rechecked using the same Slotwise engine.
-- A live enabled registration flag and live timetable are mandatory; cached data cannot authorize a write.
-- Signed session identity is used; client-supplied account headers are ignored.
-- Immutable server review plans expire after ten minutes and cannot be used by another account.
-- `registration_user_locks` serialize operations across tabs/instances. Locks use owner IDs and bounded leases.
-- `registration_attempts` has a unique key on user, term and course, including a durable pending marker written BEFORE the POST. Successful, pending and inconclusive requests cannot be sent again automatically. Only an explicit retry of a confirmed rejection is permitted.
-- A timeout, crash, unexpected JSON, ambiguous 2xx or 5xx response is inconclusive. Stop the queue and check the official timetable. If the next live check finds the course, it is safely skipped. A pending outcome is never assumed to be failure.
-- Attempt results remain available after page reload via a fresh review. Previously registered/successful/uncertain courses are not silently requeued.
-- On Vercel, registration refuses to execute with the ephemeral file database fallback. Configure the existing persistent TURSO_DATABASE_URL/DATABASE_URL/LIBSQL_URL and its authentication token.
-- No token is returned to the browser or included in exported plans. Responses expose only a bounded message, outcome and whether a request was sent.
+## Verification and limits
 
-## Validation and known limits
+Run `npm run test:registration` and `npm run build`. Tests use mock university responses and isolated SQLite, covering official metadata matching, separate theory/lab rooms, ambiguous offerings, missing rooms, seat checks, Winter URLs and payloads, term-isolated attempts, blocked lookups, immutable intent, account locks and timeout handling.
 
-Run `npm run test:registration` and `npm run build`. Tests use mock university responses and an isolated SQLite database; they do not register real courses.
-
-Payload examples are supplied by the user. Seat availability, credit limits, eligibility and exact faculty/venue matches remain subject to the university's validation. The new action is not a bypass for full slots or disabled registration. Project and combined-lab university semantics should be confirmed against the official portal before live use. No live registration was performed during implementation.
-
-University responses that do not explicitly confirm success are shown as inconclusive. The live enabled flag currently requires `{enabled:true}` and the timetable requires registrations/allRegistrations/projectRegistrations arrays with course_code values; unknown response formats fail closed.
+University registration availability, seat capacity, prerequisites, credit limits and eligibility remain authoritative. The live status parser requires `{enabled:true}`; timetable responses require recognised registration arrays and course codes. Unknown structures fail closed. No live university course registration was performed while implementing or testing this feature.
