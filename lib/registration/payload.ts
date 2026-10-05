@@ -94,3 +94,17 @@ export function classifyRegistrationResponse(status: number, body: unknown): Out
   if (data.success === true || /(?:registered successfully|successfully registered|registration successful)/i.test(String(data.message || ''))) return 'success';
   return 'uncertain';
 }
+
+const officialMetadata = text.min(1).refine(value => !/^(TBA|N\/A|Unknown|Faculty not listed|Official lookup pending)$/i.test(value), 'Official venue/faculty is required before sending.');
+const payloadBase = {course_code:text.regex(/^[A-Z]{2,6}[0-9]{3,6}$/), ...termSchema.shape};
+const checkedSlot = (check: (value: string) => string) => text.min(1).refine(value => {try {check(value); return true;} catch {return false;}}, 'Invalid registration slot.');
+export const registrationPayloadSchema = z.union([
+  z.object({...payloadBase, theory_slot:checkedSlot(theorySlot), theory_venue:officialMetadata, theory_faculty:officialMetadata, practical_slot:checkedSlot(labSlot), practical_venue:officialMetadata, practical_faculty:officialMetadata}).strict(),
+  z.object({...payloadBase, slot_name:z.literal('PROJECT'), venue:text.min(1).refine(value => value === 'N/A' || officialMetadata.safeParse(value).success), faculty_name:officialMetadata, course_type:z.literal('PRJ')}).strict(),
+  z.object({...payloadBase, slot_name:checkedSlot(value => value.startsWith('L') ? labSlot(value) : theorySlot(value)), venue:officialMetadata, faculty_name:officialMetadata}).strict(),
+]);
+export function validateRegistrationPayload(raw: unknown): RegistrationPayload {
+  const parsed = registrationPayloadSchema.safeParse(raw);
+  if (!parsed.success) throw new Error('Registration payload is incomplete or invalid. No university request was sent.');
+  return parsed.data;
+}

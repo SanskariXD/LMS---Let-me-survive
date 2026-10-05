@@ -1,3 +1,4 @@
+import { debugForRequest } from '@/lib/registration/debug';
 import { NextRequest, NextResponse } from 'next/server';
 import { prepareSchema, buildPlan } from '@/lib/registration/payload';
 import { registrationIdentity } from '@/lib/registration/server';
@@ -5,6 +6,7 @@ import { resolveOfficialCourse } from '@/lib/registration/lookup';
 export const preferredRegion = 'bom1';
 export const maxDuration = 60;
 export async function POST(request: NextRequest) {
+  const trace = debugForRequest(request);
   try {
     const identity = await registrationIdentity(request);
     const raw = await request.text();
@@ -18,10 +20,10 @@ export async function POST(request: NextRequest) {
       items.push(...await Promise.all(courses.slice(i, i + 4).map(async course => {
         try {
           if (Date.now() - started > 40_000) throw new Error('Lookup is taking longer than expected. Retry official details before registration.');
-          return {...await resolveOfficialCourse(identity.userId, course, term), error: null}; }
-        catch (error) { return {course, payload: null, error: error instanceof Error ? error.message : 'Venue not yet added.'}; }
+          return {...await resolveOfficialCourse(identity.userId, course, term, trace), error: null}; }
+        catch (error) { trace.record('offerings.unresolved', {message:error instanceof Error ? error.message : 'Lookup failed.'}, course.course_code); return {course, payload: null, error: error instanceof Error ? error.message : 'Venue not yet added.'}; }
       })));
     }
-    return NextResponse.json({items}, {headers: {'Cache-Control':'no-store'}});
-  } catch(error) {return NextResponse.json({error: error instanceof Error ? error.message : 'Lookup failed.'}, {status:400});}
+    return NextResponse.json({items, debug:trace.report()}, {headers: {'Cache-Control':'no-store'}});
+  } catch(error) {trace.record('error', {message:error instanceof Error ? error.message : 'Request failed.'}); return NextResponse.json({debug:trace.report(), error: error instanceof Error ? error.message : 'Lookup failed.'}, {status:400});}
 }

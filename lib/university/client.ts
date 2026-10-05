@@ -1,3 +1,4 @@
+import { sanitizeDebug } from '@/lib/registration/debug';
 import { universityConfig } from './config';
 import { universityLog } from './logger';
 import { loginToUniversity } from './auth';
@@ -11,6 +12,7 @@ import { getUserById, getUniversitySession, saveUniversitySession, invalidateUni
 import { decryptSecret } from '@/lib/portal/auth';
 
 export interface UniversityRequestOptions extends RequestInit {
+  onResponse?: (event: {url: string; method: string; status: number; contentType: string | null; elapsedMs: number; body: unknown; attempt: number}) => void;
   userId?: string;
   timeoutMs?: number;
   forceRefresh?: boolean;
@@ -102,12 +104,18 @@ export async function universityRequest<T>(
 
   universityLog('REQUEST_START', { method, endpoint: path, userId: userId?.slice(0, 8) });
   const started = Date.now();
+  const onResponse = options?.onResponse;
+  const fetchOptions = {...options};
+  delete fetchOptions.onResponse;
+  delete fetchOptions.userId;
+  delete fetchOptions.timeoutMs;
+  delete fetchOptions.forceRefresh;
 
   let response: Response;
   try {
     response = await fetch(url, {
       signal: options?.signal || AbortSignal.timeout(timeoutMs),
-      ...options,
+      ...fetchOptions,
       headers: {
         'Content-Type': 'application/json',
         ...buildAuthHeaders(token),
@@ -125,6 +133,16 @@ export async function universityRequest<T>(
   }
 
   const duration = Date.now() - started;
+
+  if (onResponse) {
+    // Clone only for explicitly enabled diagnostics; keep the normal response reader unchanged.
+    try {
+      const raw = await response.clone().text();
+      let body: unknown = raw;
+      try {body = JSON.parse(raw);} catch {}
+      onResponse({url, method, status:response.status, contentType:response.headers.get('content-type'), elapsedMs:duration, body:sanitizeDebug(body,[token]), attempt:retry ? 1 : 2});
+    } catch { /* Diagnostics must never change request behaviour. */ }
+  }
 
   if (response.status === 401 && retry) {
     universityLog('RETRY_AFTER_401', { endpoint: path, userId: userId?.slice(0, 8) });

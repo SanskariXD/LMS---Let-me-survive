@@ -44,8 +44,8 @@ async function loadOfficial(code,auto=false){
  if(!/^[A-Z]{2,6}[0-9]{3,6}$/.test(code)){$('#official-note').textContent='Enter one exact course code, for example CSE2033.';return}
  const version=catalogueVersion;loadingCodes.add(code);setGenerate(true);$('#official-note').textContent=`Fetching ${code} from the university…`;
  try{
-  const response=await fetch('/api/course-registration/offerings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({courseCode:code,term})});
-  const data=await response.json();if(!response.ok)throw Error(data.error||'Official offerings unavailable.');
+  const response=await fetch('/api/course-registration/offerings',{method:'POST',headers:{'Content-Type':'application/json',...(params.get('debug')==='1'?{'x-registration-debug':'1'}:{})},body:JSON.stringify({courseCode:code,term})});
+  const data=await response.json();if(data.debug&&params.get('debug')==='1'){console.debug('[LMS² Slotwise]',data.debug);if(window.parent!==window)window.parent.postMessage({type:'SLOTWISE_REGISTRATION_DEBUG',debug:data.debug},window.location.origin)}if(!response.ok)throw Error(data.error||'Official offerings unavailable.');
   if(version!==catalogueVersion)return;
   const previous=courses.find(c=>c.code===code),course=catalogueFromOfferings(data,code,previous);
   courses=previous?courses.map(c=>c.id===previous.id?course:c):[...courses,course];
