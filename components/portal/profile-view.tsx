@@ -61,7 +61,6 @@ interface ProfileViewProps {
     semesters: Array<{ slot_year: string; semester_type: string }>;
     currentSemester?: { slot_year: string; semester_type: string } | null;
   } | null;
-  attendanceTotals?: { attended: number; total: number; percentage?: number | null };
   totalCoursesCount?: number;
   totalCredits?: number;
   language?: Language;
@@ -73,7 +72,6 @@ interface ProfileViewProps {
 
 export function ProfileView({
   session,
-  attendanceTotals,
   totalCoursesCount = 0,
   totalCredits = 0,
   language = 'en',
@@ -524,13 +522,13 @@ export function ProfileView({
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-3 gap-3 text-center">
               <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100 hover:border-slate-200 transition-colors">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                   Current Term
                 </span>
                 <span className="text-sm font-black text-slate-900 mt-1 block truncate">
-                  {session?.currentSemester?.semester_type || 'SUMMER'}
+                  {session?.currentSemester?.semester_type || 'FALL'}
                 </span>
               </div>
 
@@ -549,23 +547,6 @@ export function ProfileView({
                 </span>
                 <span className="text-xl font-black text-slate-900 mt-1 block">
                   {totalCredits || 78} <span className="text-xs font-semibold text-slate-400">/ 160</span>
-                </span>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100 hover:border-slate-200 transition-colors">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Attendance Avg
-                </span>
-                <span
-                  className={`text-xl font-black mt-1 block ${
-                    attendanceTotals?.percentage != null && attendanceTotals.percentage < 75
-                      ? 'text-rose-600'
-                      : 'text-emerald-700'
-                  }`}
-                >
-                  {attendanceTotals?.percentage != null
-                    ? `${Math.round(attendanceTotals.percentage)}%`
-                    : '86%'}
                 </span>
               </div>
             </div>

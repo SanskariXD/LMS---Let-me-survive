@@ -1032,12 +1032,6 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   const isLabItem = (item: AttendanceComponentItem) =>
     item.component_label === 'Lab' || item.component_type === 'P' || item.slot_name.startsWith('L');
 
-  const totals = (attendanceItems || []).reduce(
-    (acc, c) => ({ attended: acc.attended + c.present_classes, total: acc.total + c.total_classes }),
-    { attended: 0, total: 0 }
-  );
-  const overall = totals.total ? (100 * totals.attended) / totals.total : null;
-
   // Stat badges (only count labs as at risk if < 60%)
   const onTrackCount = (attendanceItems || []).filter((c) => {
     if (c.total_classes === 0) return true;
@@ -1424,52 +1418,24 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6 flex-1 my-auto pt-1">
-                    {/* SVG Donut Ring Meter */}
-                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                        <path
-                          className="text-slate-100"
-                          strokeWidth="3.5"
-                          stroke="currentColor"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        <path
-                          className={overall !== null && overall >= TARGET_THRESHOLD ? 'text-emerald-500' : 'text-amber-500'}
-                          strokeDasharray={`${overall ?? 80}, 100`}
-                          strokeWidth="3.5"
-                          strokeLinecap="round"
-                          stroke="currentColor"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-none">
-                          {overall === null ? '—' : `${Math.round(overall)}%`}
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">{t.overallAttendance}</span>
-                      </div>
-                    </div>
-
                     {/* Stat Badges */}
                     <div className="flex-1 grid grid-cols-3 gap-2.5 sm:gap-3 w-full">
                       <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-100 text-center flex flex-col justify-center">
                         <span className="text-xl sm:text-2xl font-black text-emerald-700 block leading-tight">{onTrackCount}</span>
                         <span className="text-[10px] sm:text-[11px] font-bold text-emerald-600 flex items-center justify-center gap-1 mt-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {t.onTrack}
+                          {t.onTrack}
                         </span>
                       </div>
                       <div className="p-3 sm:p-3.5 rounded-xl bg-amber-50/80 border border-amber-100 text-center flex flex-col justify-center">
                         <span className="text-xl sm:text-2xl font-black text-amber-700 block leading-tight">{needsAttentionCount}</span>
                         <span className="text-[10px] sm:text-[11px] font-bold text-amber-600 flex items-center justify-center gap-1 mt-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Warning
+                          Warning
                         </span>
                       </div>
                       <div className="p-3 sm:p-3.5 rounded-xl bg-rose-50/80 border border-rose-100 text-center flex flex-col justify-center">
                         <span className="text-xl sm:text-2xl font-black text-rose-700 block leading-tight">{atRiskCount}</span>
                         <span className="text-[10px] sm:text-[11px] font-bold text-rose-600 flex items-center justify-center gap-1 mt-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> {t.needsAttention}
+                          {t.needsAttention}
                         </span>
                       </div>
                     </div>
@@ -1734,7 +1700,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
               {/* Header with Semester Selector */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                 <div>
-                  <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-900 tracking-tight flex flex-wrap items-center gap-2">
                     <span>Marks & Assessments</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-700">
                       University Registry
@@ -1746,7 +1712,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                 </div>
 
                 {/* Semester Selector */}
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="text-xs font-semibold text-slate-500">Semester:</span>
                   {marksSemesters.length > 0 && (
                     <Select
@@ -1992,9 +1958,11 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                               <MapPin size={9} />
                               {ev.venue || 'Campus'}
                             </span>
-                            <span className="font-bold px-1.5 py-0.5 rounded bg-white/70 text-[9px]">
-                              {item.isMultiSpan ? 'Lab · 2 Slots' : ev.type}
-                            </span>
+                            {ev.type !== 'Lab' && (
+                              <span className="font-bold px-1.5 py-0.5 rounded bg-white/70 text-[9px]">
+                                {ev.type}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2475,7 +2443,6 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
           {view === 'profile' && (
             <ProfileView
               session={session}
-              attendanceTotals={{ ...totals, percentage: overall }}
               totalCoursesCount={uniqueCoursesCatalog.length}
               totalCredits={effectiveAcademicsAudit?.totalEarnedCredits || academicsData?.audit?.totalEarnedCredits || 0}
               language={language}
@@ -2491,8 +2458,8 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
       {/* DETAILED ATTENDANCE REPORT MODAL (NO "RM", CLEAN HEADERS) */}
       <Dialog open={!!selectedReportTarget} onOpenChange={(open) => { if (!open) setSelectedReportTarget(null); }}>
-        <DialogContent className="w-[94vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl bg-white shadow-2xl">
-          <DialogHeader className="border-b border-slate-100 pb-3 sm:pb-4 pr-6">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-2xl min-w-0 max-h-[90dvh] overflow-y-auto overflow-x-hidden [&>*]:min-w-0 p-4 sm:p-6 rounded-2xl bg-white shadow-2xl">
+          <DialogHeader className="border-b border-slate-100 pb-3 sm:pb-4 pr-6 text-left">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
@@ -2568,7 +2535,26 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                   Class Log ({reportData.attendance_records?.length ?? 0} Sessions Recorded)
                 </h4>
 
-                <div className="border border-slate-100 rounded-xl overflow-x-auto">
+                <div className="space-y-2 sm:hidden">
+                  {reportData.attendance_records?.length ? reportData.attendance_records.map((rec, index) => {
+                    const isPresent = rec.status?.toLowerCase() === 'present';
+                    const isOD = rec.is_od || rec.status?.toLowerCase() === 'od';
+                    return (
+                      <div key={index} className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/60 p-3 text-xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 font-semibold text-slate-800">{formatDate(rec.attendance_date)}<span className="block text-[10px] font-normal text-slate-400">{rec.slot_day}</span></div>
+                          <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold ${isOD ? 'bg-blue-50 text-blue-700' : isPresent ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{isOD ? 'OD' : isPresent ? 'Present' : 'Absent'}</span>
+                        </div>
+                        <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-slate-600">
+                          <dt className="text-slate-400">Slot & Time</dt><dd className="break-words">{rec.slot_name} · {rec.slot_time}</dd>
+                          <dt className="text-slate-400">Venue</dt><dd className="break-words">{rec.venue || 'Campus'}</dd>
+                          <dt className="text-slate-400">Faculty</dt><dd className="break-words">{rec.faculty_name || 'Department Faculty'}</dd>
+                        </dl>
+                      </div>
+                    );
+                  }) : <p className="rounded-xl border border-slate-100 p-6 text-center text-xs text-slate-400">No session records found.</p>}
+                </div>
+                <div className="hidden min-w-0 border border-slate-100 rounded-xl overflow-x-auto sm:block">
                   <Table className="min-w-[480px] sm:min-w-full">
                     <TableHeader className="bg-slate-50/80">
                       <TableRow>
@@ -2639,11 +2625,11 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
       {/* DETAILED MARKS & ASSESSMENTS INSPECTION MODAL */}
       <Dialog open={!!selectedCourseForMarks} onOpenChange={(open) => { if (!open) setSelectedCourseForMarks(null); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-6 rounded-2xl bg-white">
-          <DialogHeader className="border-b border-slate-100 pb-4">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-2xl min-w-0 max-h-[90dvh] overflow-y-auto overflow-x-hidden [&>*]:min-w-0 p-4 sm:p-6 rounded-2xl bg-white">
+          <DialogHeader className="border-b border-slate-100 pb-4 pr-6 text-left">
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
                     {selectedCourseForMarks?.course_code}
                   </span>
@@ -2654,7 +2640,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                     {selectedCourseForMarks?.venue || 'Campus'}
                   </span>
                 </div>
-                <DialogTitle className="text-base font-bold text-slate-900">
+                <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 leading-snug break-words">
                   {selectedCourseForMarks?.course_name}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400 mt-0.5">
@@ -2687,7 +2673,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                   <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 block">Assessment Standing</span>
-                      <div className="flex items-baseline gap-2 mt-0.5">
+                      <div className="flex flex-wrap items-baseline gap-2 mt-0.5">
                         <span className="text-2xl font-black text-slate-900">
                           {grandTotal !== null ? grandTotal : 'In Progress'}
                         </span>
@@ -2696,7 +2682,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-indigo-700 shadow-2xs border border-indigo-200/60">
                         {gradingType} Grading
                       </span>
@@ -2733,7 +2719,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                                 : 'bg-slate-50 border-slate-200'
                             }`}
                           >
-                            <div className="flex items-center justify-between text-[10px] font-bold mb-1">
+                            <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] font-bold mb-1">
                               <span className="text-slate-800 font-mono">{compKey}</span>
                               <span
                                 className={`px-1.5 py-0.5 rounded text-[9px] ${
@@ -2757,7 +2743,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                               </span>
                             </div>
 
-                            <div className="pt-1.5 border-t border-black/5 text-[10px] text-slate-500 flex items-center justify-between">
+                            <div className="pt-1.5 border-t border-black/5 text-[10px] text-slate-500 flex flex-wrap gap-1 items-center justify-between">
                               <span>Weight {compVal.weightage}%</span>
                               <span className="font-bold text-indigo-600">Pts {convertedScore}</span>
                             </div>
@@ -2775,7 +2761,21 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                   <h4 className="text-xs font-bold text-slate-800 mb-2.5">
                     Continuous Assessments & Submissions
                   </h4>
-                  <div className="border border-slate-100 rounded-xl overflow-hidden">
+                  <div className="space-y-2 sm:hidden">
+                    {marksDetailsData.marks.marks.map((m: any, index: number) => {
+                      const pct = m.max_marks > 0 ? Math.round((m.marks_obtained / m.max_marks) * 100) : 0;
+                      return (
+                        <div key={index} className="min-w-0 rounded-xl border border-slate-100 p-3 text-xs">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="min-w-0 break-words font-semibold text-slate-800">{m.component}</span>
+                            <span className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-bold ${pct >= 75 ? 'bg-emerald-50 text-emerald-700' : pct >= 50 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}>{pct}%</span>
+                          </div>
+                          <p className="mt-2 text-slate-500">Marks: <span className="font-bold text-indigo-600">{m.marks_obtained}</span> / {m.max_marks}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="hidden min-w-0 border border-slate-100 rounded-xl overflow-x-auto sm:block">
                     <Table>
                       <TableHeader className="bg-slate-50/80">
                         <TableRow>
