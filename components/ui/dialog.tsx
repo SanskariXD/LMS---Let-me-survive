@@ -4,13 +4,26 @@ import * as React from "react"
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
+import { useDialogNavigation } from "@/lib/portal/navigation"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 function Dialog({
+  open: controlledOpen,
+  defaultOpen = false,
+  onOpenChange,
+  historyNavigation = true,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+}: React.ComponentProps<typeof DialogPrimitive.Root> & { historyNavigation?: boolean }) {
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen);
+  const open = controlledOpen ?? internalOpen;
+  const changeOpen = (next: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
+  useDialogNavigation(open, () => changeOpen(false), historyNavigation);
+  return <DialogPrimitive.Root data-slot="dialog" open={open} onOpenChange={changeOpen} {...props} />;
 }
 
 function DialogTrigger({

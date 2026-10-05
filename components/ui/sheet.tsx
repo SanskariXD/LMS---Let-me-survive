@@ -4,10 +4,19 @@ import * as React from "react"
 import { XIcon } from "lucide-react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
+import { useDialogNavigation } from "@/lib/portal/navigation"
+
 import { cn } from "@/lib/utils"
 
-function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />
+function Sheet({ open: controlledOpen, defaultOpen = false, onOpenChange, ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen);
+  const open = controlledOpen ?? internalOpen;
+  const changeOpen = (next: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
+  useDialogNavigation(open, () => changeOpen(false));
+  return <SheetPrimitive.Root data-slot="sheet" open={open} onOpenChange={changeOpen} {...props} />;
 }
 
 function SheetTrigger({

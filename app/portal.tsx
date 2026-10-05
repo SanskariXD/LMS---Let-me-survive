@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { usePortalNavigation } from '@/lib/portal/navigation';
 import {
   LayoutDashboard,
   ChartNoAxesCombined,
@@ -246,7 +247,7 @@ function PortalNavMenu({
 }
 
 export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; onSwitchUser?: () => void }) {
-  const [view, setView] = useState('overview');
+  const [view, setView] = usePortalNavigation();
   const [session, setSession] = useState<Session | null>(null);
   const [activeSemester, setActiveSemester] = useState('');
   const [attendanceItems, setAttendanceItems] = useState<AttendanceComponentItem[] | null>(null);
@@ -2928,7 +2929,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       </Dialog>
 
       {/* Session Inactivity Lock / Token Re-authentication Modal */}
-      <Dialog open={isIdleLocked || isReauthModalOpen} onOpenChange={() => {}}>
+      <Dialog historyNavigation={false} open={isIdleLocked || isReauthModalOpen} onOpenChange={() => {}}>
         <DialogContent 
           className="sm:max-w-md rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-indigo-100 z-[9999]"
           onPointerDownOutside={(e) => e.preventDefault()}
