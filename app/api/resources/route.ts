@@ -1,3 +1,5 @@
+import { guardMutation } from '@/lib/security/request';
+import { readJson } from '@/lib/security/request';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/portal/session';
 import { getResources, createResource, getUserById } from '@/lib/db/queries';
@@ -5,7 +7,7 @@ import { getResources, createResource, getUserById } from '@/lib/db/queries';
 export async function GET(request: NextRequest) {
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id') || undefined;
+    const userId = session?.userId;
 
     const resourcesList = await getResources(userId);
     return NextResponse.json({ resources: resourcesList });
@@ -16,9 +18,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id');
+    const userId = session?.userId;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -26,7 +30,7 @@ export async function POST(request: NextRequest) {
     const user = await getUserById(userId);
     const uploaderName = user?.student_name || session?.name || 'Anonymous Student';
 
-    const body = await request.json();
+    const body = await readJson(request);
     if (!body?.title || !body?.course || !body?.fileUrl) {
       return NextResponse.json(
         { error: 'Title, course, and file URL are required' },

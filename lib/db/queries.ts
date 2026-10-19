@@ -1,3 +1,5 @@
+import { encryptSecret, decryptSecret } from '@/lib/portal/auth';
+import { safeExternalUrl, safeResourceUrl } from '@/lib/security/urls';
 import { eq, and, or, desc } from 'drizzle-orm';
 import { db, ensureDbInitialized } from '@/db';
 import * as schema from '@/db/schema';
@@ -96,15 +98,19 @@ export async function updateUserPin(userId: string, pinHash: string) {
 export async function getUniversitySession(userId: string) {
   await ensureDbInitialized();
   const rows = await db.select().from(schema.universitySessions).where(eq(schema.universitySessions.user_id, userId)).limit(1);
-  return rows[0] || null;
+  const session = rows[0];
+  if (!session) return null;
+  const token = decryptSecret(session.token);
+  return token ? {...session, token} : null;
 }
 
 export async function saveUniversitySession(userId: string, token: string, expiresAt: number, status = 'active', lastError?: string) {
   await ensureDbInitialized();
-  const existing = await getUniversitySession(userId);
+  const existing = await db.select({user_id: schema.universitySessions.user_id}).from(schema.universitySessions).where(eq(schema.universitySessions.user_id, userId)).limit(1);
+  token = encryptSecret(token);
   const now = Date.now();
 
-  if (existing) {
+  if (existing.length) {
     await db.update(schema.universitySessions).set({
       token,
       expires_at: expiresAt,
@@ -130,6 +136,7 @@ export async function invalidateUniversitySession(userId: string) {
     await db.update(schema.universitySessions).set({
       expires_at: 0,
       status: 'expired',
+      token: '',
     }).where(eq(schema.universitySessions.user_id, userId));
   } catch (err) {
     console.warn('[Queries] Failed to invalidate university session:', err);
@@ -212,7 +219,7 @@ export async function createTask(userId: string, data: {
     priority: data.priority || 'medium',
     is_assignment: !!data.isAssignment,
     completed: !!data.completed,
-    submission_url: data.submissionUrl || null,
+    submission_url: data.submissionUrl ? safeExternalUrl(data.submissionUrl) : null,
     reminder_mins: data.reminderMins ?? 30,
     created_at: now,
     updated_at: now,
@@ -249,14 +256,14 @@ export async function updateTask(userId: string, taskId: string, data: Partial<{
   if (data.priority !== undefined) updates.priority = data.priority;
   if (data.isAssignment !== undefined) updates.is_assignment = data.isAssignment;
   if (data.completed !== undefined) updates.completed = data.completed;
-  if (data.submissionUrl !== undefined) updates.submission_url = data.submissionUrl;
+  if (data.submissionUrl !== undefined) updates.submission_url = data.submissionUrl ? safeExternalUrl(data.submissionUrl) : null;
   if (data.reminderMins !== undefined) updates.reminder_mins = data.reminderMins;
 
   await db.update(schema.tasks)
     .set(updates)
     .where(and(eq(schema.tasks.id, taskId), eq(schema.tasks.user_id, userId)));
 
-  const rows = await db.select().from(schema.tasks).where(eq(schema.tasks.id, taskId)).limit(1);
+  const rows = await db.select().from(schema.tasks).where(and(eq(schema.tasks.id, taskId), eq(schema.tasks.user_id, userId))).limit(1);
   return rows[0] || null;
 }
 
@@ -430,7 +437,7 @@ export async function createResource(userId: string, uploaderName: string, data:
     semester: data.semester,
     resource_type: data.resourceType,
     is_open_book: !!data.isOpenBook,
-    file_url: data.fileUrl,
+    file_url: safeResourceUrl(data.fileUrl),
     file_name: data.fileName,
     file_size: data.fileSize || 0,
     file_mime_type: data.fileMimeType || null,

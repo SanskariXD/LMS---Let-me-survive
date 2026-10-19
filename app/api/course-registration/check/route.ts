@@ -1,3 +1,5 @@
+import { readBody } from '@/lib/security/request';
+import { guardMutation } from '@/lib/security/request';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { debugForRequest } from '@/lib/registration/debug';
@@ -6,10 +8,12 @@ import { registrationIdentity, livePreflight } from '@/lib/registration/server';
 export const preferredRegion = 'bom1';
 export const maxDuration = 60;
 export async function POST(request: NextRequest) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   const trace=debugForRequest(request);
   try {
     const identity=await registrationIdentity(request);
-    const raw=await request.text();
+    const raw=(await readBody(request, 64_000)).toString('utf8');
     if (raw.length > 2_000) throw new Error('Invalid readiness check.');
     const {term}=z.object({term:termSchema}).strict().parse(JSON.parse(raw));
     const registered=await livePreflight(identity.userId,term,trace);

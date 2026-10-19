@@ -4,6 +4,10 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const ts = require('typescript');
 const commonMocks = {};
+commonMocks['@/lib/security/request'] = {
+  guardMutation: request => request.headers?.get('origin') === request.nextUrl?.origin ? null : {status:403},
+  readBody: async (request, limit) => {const raw=Buffer.from(await request.text()); if(raw.length>limit) throw new Error('BODY_TOO_LARGE'); return raw;},
+};
 const {createClient} = require('@libsql/client');
 function load(file, mocks = {}, globals = {}) {
   const exports = {};
@@ -303,6 +307,7 @@ test('read-only university diagnostics retain non-2xx bodies but strip tokens an
 });
 
 test('readiness check is read-only, term-aware and returns a trace for closed registration',async()=>{
+  process.env.ENABLE_REGISTRATION_DEBUG = 'true';
   let term;
   const mocks={
     'next/server':{NextResponse:{json:(body,options)=>({body,status:options?.status||200})}},
@@ -310,7 +315,7 @@ test('readiness check is read-only, term-aware and returns a trace for closed re
     '@/lib/registration/server':{registrationIdentity:async()=>({userId:'owner'}),livePreflight:async(user,input,trace)=>{term=input;trace.record('preflight.status',{enabled:true});return new Set(['CSE3008'])}}
   };
   const route=load('app/api/course-registration/check/route.ts',mocks);
-  const request={headers:new Headers({'x-registration-debug':'1'}),text:async()=>JSON.stringify({term:{slot_year:'2026-27',semester_type:'WINTER'}})};
+  const request={nextUrl:new URL('https://portal.test/api/course-registration/check'),headers:new Headers({'origin':'https://portal.test','x-registration-debug':'1'}),text:async()=>JSON.stringify({term:{slot_year:'2026-27',semester_type:'WINTER'}})};
   let result=await route.POST(request);
   assert.equal(result.body.ready,true);assert.equal(term.semester_type,'WINTER');assert.deepEqual(plain(result.body.registeredCourseCodes),['CSE3008']);assert.equal(result.body.debug.events[0].data.enabled,true);
   mocks['@/lib/registration/server'].livePreflight=async()=>{throw Error('University course registration is closed.')};

@@ -41,6 +41,8 @@ export async function loginToUniversity(credentials?: {
   try {
     response = await fetch(url, {
       method: 'POST',
+      redirect: 'error',
+      cache: 'no-store',
       signal: AbortSignal.timeout(12000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),

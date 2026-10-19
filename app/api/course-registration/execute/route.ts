@@ -1,3 +1,5 @@
+import { readBody } from '@/lib/security/request';
+import { guardMutation } from '@/lib/security/request';
 import { debugForRequest } from '@/lib/registration/debug';
 import { NextRequest, NextResponse } from 'next/server';
 import { executeSchema, termSchema } from '@/lib/registration/payload';
@@ -8,11 +10,13 @@ import { acquireUserLock, getPlan, finishAttempt } from '@/lib/registration/stor
 export const preferredRegion = 'bom1';
 export const maxDuration = 60;
 export async function POST(request: NextRequest) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   const trace = debugForRequest(request);
   let release: (() => Promise<void>) | undefined;
   try {
     const identity = await registrationIdentity(request);
-    const raw = await request.text();
+    const raw = (await readBody(request, 64_000)).toString('utf8');
     if (raw.length > 2_000) throw new Error('Invalid registration request.');
     const input = executeSchema.parse(JSON.parse(raw));
     const plan = await getPlan(input.planId, identity.userId);

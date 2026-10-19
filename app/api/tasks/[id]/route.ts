@@ -1,3 +1,5 @@
+import { guardMutation } from '@/lib/security/request';
+import { readJson } from '@/lib/security/request';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/portal/session';
 import { updateTask, deleteTask } from '@/lib/db/queries';
@@ -6,15 +8,17 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id');
+    const userId = session?.userId;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { id } = await context.params;
-    const body = await request.json();
+    const body = await readJson(request);
 
     const updated = await updateTask(userId, id, {
       title: body.title,
@@ -46,9 +50,11 @@ export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id');
+    const userId = session?.userId;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

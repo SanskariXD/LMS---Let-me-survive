@@ -1,3 +1,5 @@
+import { guardMutation } from '@/lib/security/request';
+import { readJson } from '@/lib/security/request';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/portal/session';
 import { getUserManualCourses, addManualCourse, deleteManualCourse } from '@/lib/db/queries';
@@ -5,7 +7,7 @@ import { getUserManualCourses, addManualCourse, deleteManualCourse } from '@/lib
 export async function GET(request: NextRequest) {
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id');
+    const userId = session?.userId;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -19,14 +21,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id');
+    const userId = session?.userId;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await readJson(request);
     if (!body?.courseCode || !body?.courseName || !body?.semester) {
       return NextResponse.json(
         { error: 'Course code, name, and semester are required' },
@@ -50,9 +54,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id');
+    const userId = session?.userId;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -21,6 +21,8 @@ function timestamp(): string {
 export function universityLog(event: LogEvent, data?: Record<string, unknown>): void {
   const safe = data ? { ...data } : {};
   // Strictly redact all sensitive data
+  delete safe['username'];
+  delete safe['userId'];
   delete safe['password'];
   delete safe['token'];
   delete safe['jwt'];

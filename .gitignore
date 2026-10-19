@@ -51,3 +51,6 @@ next-env.d.ts
 *.db-shm
 *.db-wal
 *.sqlite
+
+# TypeScript incremental build cache
+*.tsbuildinfo

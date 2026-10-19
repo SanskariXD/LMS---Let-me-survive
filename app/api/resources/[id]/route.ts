@@ -1,3 +1,4 @@
+import { guardMutation } from '@/lib/security/request';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/portal/session';
 import { deleteResource } from '@/lib/db/queries';
@@ -6,9 +7,11 @@ export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id');
+    const userId = session?.userId;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

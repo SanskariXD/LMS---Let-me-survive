@@ -1,3 +1,5 @@
+import { guardMutation } from '@/lib/security/request';
+import { readJson } from '@/lib/security/request';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/lib/portal/session';
 import {
@@ -11,9 +13,11 @@ import {
 } from '@/lib/db/queries';
 
 export async function POST(request: NextRequest) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id');
+    const userId = session?.userId;
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -21,8 +25,10 @@ export async function POST(request: NextRequest) {
     const user = await getUserById(userId);
     const uploaderName = user?.student_name || session?.name || 'Student';
 
-    const body = await request.json();
+    const body = await readJson(request);
     const { tasks, manualCourses, preferences, sharedResources } = body;
+
+    if ([tasks, manualCourses, sharedResources].some(value => Array.isArray(value) && value.length > 100)) return NextResponse.json({error: 'Import at most 100 items at a time.'}, {status: 400});
 
     let importedTasks = 0;
     let importedCourses = 0;
@@ -41,7 +47,7 @@ export async function POST(request: NextRequest) {
         if (existingTitles.has(normalizedTitle)) continue;
 
         await createTask(userId, {
-          id: t.id,
+
           title: t.title,
           course: t.course,
           professor: t.professor,

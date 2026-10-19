@@ -35,46 +35,13 @@ interface DeviceUser {
   program?: string;
 }
 
-async function triggerLegacyDataMigration(userId: string) {
-  const markerKey = `slotwise_migrated_v1_${userId}`;
-  if (localStorage.getItem(markerKey) === 'true') return;
-
+function clearPrivateBrowserCache() {
   try {
-    const rawTasks = localStorage.getItem('slotwise_portal_tasks');
-    const rawManualCourses = localStorage.getItem('slotwise_manual_courses');
-    const rawPreferences = localStorage.getItem('slotwise_user_preferences');
-    const rawSharedResources = localStorage.getItem('slotwise_shared_resources');
-
-    const payload: Record<string, any> = {};
-    if (rawTasks) {
-      try { payload.tasks = JSON.parse(rawTasks); } catch {}
+    const privateKeys = new Set(['slotwise_portal_tasks', 'slotwise_manual_courses', 'slotwise_user_preferences', 'slotwise_saved_resource_ids', 'slotwise_helpful_resource_ids']);
+    for (const key of Object.keys(localStorage)) {
+      if (privateKeys.has(key) || key.startsWith('slotwise_univ_cache_') || key.startsWith('slotwise_univ_synced_at_')) localStorage.removeItem(key);
     }
-    if (rawManualCourses) {
-      try { payload.manualCourses = JSON.parse(rawManualCourses); } catch {}
-    }
-    if (rawPreferences) {
-      try { payload.preferences = JSON.parse(rawPreferences); } catch {}
-    }
-    if (rawSharedResources) {
-      try { payload.sharedResources = JSON.parse(rawSharedResources); } catch {}
-    }
-
-    if (Object.keys(payload).length > 0) {
-      const res = await fetch('/api/sync/migrate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        localStorage.setItem(markerKey, 'true');
-        console.info('[Migration] Legacy localStorage data successfully synchronized to server.');
-      }
-    } else {
-      localStorage.setItem(markerKey, 'true');
-    }
-  } catch (err) {
-    console.warn('[Migration] Non-fatal migration check error:', err);
-  }
+  } catch { /* Storage can be disabled by the browser. */ }
 }
 
 export default function PortalGate() {
@@ -145,7 +112,6 @@ export default function PortalGate() {
             setDeviceUser(data.user);
             setPinEnrollment(data.user.enrollment);
             localStorage.setItem('slotwise_device_user', JSON.stringify(data.user));
-            triggerLegacyDataMigration(data.user.id);
           }
         } else if (live && data?.rememberedUser) {
           // Device recognized by server from persistent cookie & verified in DB
@@ -199,14 +165,15 @@ export default function PortalGate() {
         throw new Error(data.error || 'Incorrect PIN. Try again or login with password.');
       }
 
+      clearPrivateBrowserCache();
       setPin('');
+      clearPrivateBrowserCache();
       setUnlocked(true);
       if (data.user) {
         setCurrentUser(data.user);
         setDeviceUser(data.user);
         setPinEnrollment(data.user.enrollment);
         localStorage.setItem('slotwise_device_user', JSON.stringify(data.user));
-        triggerLegacyDataMigration(data.user.id);
       }
     } catch (err: any) {
       setPin('');
@@ -244,13 +211,13 @@ export default function PortalGate() {
         throw new Error(data.error || 'Failed to connect university account. Check credentials.');
       }
 
+      clearPrivateBrowserCache();
       setUnlocked(true);
       if (data.user) {
         setCurrentUser(data.user);
         setDeviceUser(data.user);
         setPinEnrollment(data.user.enrollment);
         localStorage.setItem('slotwise_device_user', JSON.stringify(data.user));
-        triggerLegacyDataMigration(data.user.id);
       }
     } catch (err: any) {
       setConnectError(err.message || 'Failed to connect university account.');
@@ -266,6 +233,7 @@ export default function PortalGate() {
     } catch (err) {
       console.error('[Portal] Sign out error:', err);
     }
+    clearPrivateBrowserCache();
     setUnlocked(false);
     setPin('');
     setPinError('');
@@ -288,6 +256,7 @@ export default function PortalGate() {
     }
     setDeviceUser(null);
     setCurrentUser(null);
+    clearPrivateBrowserCache();
     setUnlocked(false);
     setPin('');
     setPinEnrollment('');

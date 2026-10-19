@@ -1,3 +1,6 @@
+import { consumeAttempt, clientBucket } from '@/lib/security/rate-limit';
+import { guardMutation } from '@/lib/security/request';
+import { readJson } from '@/lib/security/request';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPin, decryptSecret } from '@/lib/portal/auth';
 import { createSession } from '@/lib/portal/session';
@@ -8,13 +11,15 @@ import { setCachedUniversityToken } from '@/lib/university/token-store';
 export const preferredRegion = 'bom1';
 
 export async function POST(request: NextRequest) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   try {
-    const body = await request.json();
+    const body = await readJson(request);
     const pin = body?.pin;
     const userId = body?.userId;
     const enrollment = body?.enrollment;
 
-    if (!pin || typeof pin !== 'string') {
+    if (typeof pin !== 'string' || !/^\d{6}$/.test(pin) || (userId !== undefined && (typeof userId !== 'string' || userId.length > 160)) || (enrollment !== undefined && (typeof enrollment !== 'string' || enrollment.length > 160))) {
       return NextResponse.json(
         { error: 'PIN is required', code: 'MISSING_PIN' },
         { status: 400 },
@@ -24,26 +29,14 @@ export async function POST(request: NextRequest) {
     // Specific user PIN verification
     if (userId || enrollment) {
       const user = userId ? await getUserById(userId) : await getUserByEnrollment(enrollment);
-      if (!user) {
-        return NextResponse.json(
-          { error: 'Student account not found. Please login with your university password first.', code: 'USER_NOT_FOUND' },
-          { status: 404 },
-        );
+      if (!await consumeAttempt('pin-ip', clientBucket(request), 30) || !await consumeAttempt('pin-account', user?.id || String(enrollment || userId).trim().toLowerCase(), 5)) {
+        return NextResponse.json({error: 'Too many attempts. Try again in 15 minutes.'}, {status: 429, headers: {'Retry-After': '900'}});
       }
-
-      if (!user.pin_hash) {
-        return NextResponse.json(
-          { error: 'No PIN is set for this account yet. Please login with your university password and set your 6-digit PIN in Profile.', code: 'NO_PIN_SET' },
-          { status: 400 },
-        );
-      }
-
-      const valid = await verifyPin(pin, user.pin_hash);
-      if (!valid) {
-        return NextResponse.json(
-          { error: 'Incorrect PIN. Please check and try again.', code: 'INVALID_PIN' },
-          { status: 401 },
-        );
+      // Use the same expensive verification and response for unknown accounts and wrong PINs.
+      const dummyHash = '00000000000000000000000000000000:' + '00'.repeat(64);
+      const valid = await verifyPin(pin, user?.pin_hash || dummyHash);
+      if (!user || !user.pin_hash || !valid) {
+        return NextResponse.json({error: 'University ID or PIN is incorrect.', code: 'INVALID_PIN'}, {status: 401});
       }
 
       // Create LMS² session cookie

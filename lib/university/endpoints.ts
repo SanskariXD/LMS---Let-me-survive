@@ -7,7 +7,7 @@ export const UNIVERSITY_ENDPOINTS = {
     `/api/attendance/student/report/${encodeURIComponent(courseCode)}/${encodeURIComponent(slotYear)}/${encodeURIComponent(semesterType)}${
       slotName ? `?slot_name=${encodeURIComponent(slotName)}` : ''
     }`,
-  student: (id: string) => `/api/students/${id}`,
+  student: (id: string) => `/api/students/${encodeURIComponent(id)}`,
   courses: '/api/courses',
   slots: '/api/slots',
   schools: '/api/schools',

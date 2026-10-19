@@ -12,6 +12,7 @@ import { getUserById, getUniversitySession, saveUniversitySession, invalidateUni
 import { decryptSecret } from '@/lib/portal/auth';
 
 export interface UniversityRequestOptions extends RequestInit {
+  upstreamToken?: string;
   onResponse?: (event: {url: string; method: string; status: number; contentType: string | null; elapsedMs: number; body: unknown; attempt: number}) => void;
   userId?: string;
   timeoutMs?: number;
@@ -19,16 +20,7 @@ export interface UniversityRequestOptions extends RequestInit {
 }
 
 export async function getValidTokenForUser(userId?: string, forceRefresh = false): Promise<string> {
-  // 1. If no userId provided, use default university credentials
-  if (!userId) {
-    if (!forceRefresh && isTokenValid('__default__')) {
-      universityLog('TOKEN_CACHE_HIT', { scope: 'default' });
-      return getCachedUniversityToken('__default__')!.token;
-    }
-    const fresh = await loginToUniversity();
-    setCachedUniversityToken('__default__', fresh);
-    return fresh.token;
-  }
+  if (!userId) throw new Error('UNIVERSITY_SESSION_REQUIRED');
 
   // 2. Check memory cache for this user (unless forced refresh)
   if (!forceRefresh && isTokenValid(userId)) {
@@ -97,7 +89,7 @@ export async function universityRequest<T>(
   retry = true,
 ): Promise<T> {
   const userId = options?.userId;
-  const token = await getValidTokenForUser(userId, options?.forceRefresh);
+  const token = options?.upstreamToken || await getValidTokenForUser(userId, options?.forceRefresh);
   const url = `${universityConfig.baseUrl}${path}`;
   const method = options?.method ?? 'GET';
   const timeoutMs = options?.timeoutMs || 12000;
@@ -106,6 +98,7 @@ export async function universityRequest<T>(
   const started = Date.now();
   const onResponse = options?.onResponse;
   const fetchOptions = {...options};
+  delete fetchOptions.upstreamToken;
   delete fetchOptions.onResponse;
   delete fetchOptions.userId;
   delete fetchOptions.timeoutMs;
@@ -114,8 +107,10 @@ export async function universityRequest<T>(
   let response: Response;
   try {
     response = await fetch(url, {
-      signal: options?.signal || AbortSignal.timeout(timeoutMs),
       ...fetchOptions,
+      signal: options?.signal || AbortSignal.timeout(timeoutMs),
+      redirect: 'error',
+      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
         ...buildAuthHeaders(token),
@@ -144,7 +139,7 @@ export async function universityRequest<T>(
     } catch { /* Diagnostics must never change request behaviour. */ }
   }
 
-  if (response.status === 401 && retry) {
+  if (response.status === 401 && retry && !options?.upstreamToken) {
     universityLog('RETRY_AFTER_401', { endpoint: path, userId: userId?.slice(0, 8) });
     clearUniversityToken(userId || '__default__');
     if (userId) {

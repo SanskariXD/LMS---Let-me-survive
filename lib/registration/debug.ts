@@ -43,5 +43,5 @@ export function createDebugTrace(enabled: boolean) {
 }
 export type DebugTrace = ReturnType<typeof createDebugTrace>;
 export function debugForRequest(request: {headers?: {get: (key: string) => string | null}}) {
-  return createDebugTrace(process.env.NODE_ENV === 'development' || request.headers?.get('x-registration-debug') === '1');
+  return createDebugTrace(process.env.NODE_ENV === 'development' || (process.env.ENABLE_REGISTRATION_DEBUG === 'true' && request.headers?.get('x-registration-debug') === '1'));
 }

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const COOKIE_NAME = 'slotwise_session';
 
 export const config = {
-  matcher: ['/portal/:path+', '/api/university/:path*', '/api/tasks/:path*', '/api/resources/:path*', '/api/user/:path*', '/api/sync/:path*'],
+  matcher: ['/portal/:path*', '/api/:path*'],
 };
 
 async function verifySessionCookie(request: NextRequest): Promise<{ valid: boolean; userId?: string }> {
@@ -19,8 +19,8 @@ async function verifySessionCookie(request: NextRequest): Promise<{ valid: boole
   }
 
   try {
-    const [payload, signature] = cookie.value.split('.');
-    if (!payload || !signature) return { valid: false };
+    const [payload, signature, extra] = cookie.value.split('.');
+    if (!payload || !signature || extra) return { valid: false };
 
     // Verify HMAC using Web Crypto API
     const encoder = new TextEncoder();
@@ -52,14 +52,19 @@ async function verifySessionCookie(request: NextRequest): Promise<{ valid: boole
 }
 
 export default async function middleware(request: NextRequest) {
-  // Allow university diagnostics to be checked publicly for health checks
-  if (request.nextUrl.pathname === '/api/university/diagnostics') {
-    return NextResponse.next();
+  const path = request.nextUrl.pathname;
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+    const origin = request.headers.get('origin');
+    if (!origin || origin !== request.nextUrl.origin || request.headers.get('sec-fetch-site') === 'cross-site') {
+      return NextResponse.json({error: 'Forbidden'}, {status: 403});
+    }
   }
-
-  // Allow public resource listing/viewing
-  if (request.nextUrl.pathname === '/api/resources' && request.method === 'GET') {
-    return NextResponse.next();
+  const publicRoute = ['/api/portal/login', '/api/auth/connect', '/api/portal/session', '/api/portal/logout', '/api/university/diagnostics'].includes(path)
+    || (path === '/api/resources' && request.method === 'GET');
+  if (publicRoute) {
+    const response = NextResponse.next();
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
   }
 
   const { valid, userId } = await verifySessionCookie(request);
@@ -76,13 +81,16 @@ export default async function middleware(request: NextRequest) {
 
   // Inject authenticated userId into request headers for downstream API routes
   const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete('x-user-id');
   if (userId) {
     requestHeaders.set('x-user-id', userId);
   }
 
-  return NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 }

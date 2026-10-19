@@ -1,6 +1,13 @@
 export const universityConfig = {
   get baseUrl() {
-    return process.env.UNIVERSITY_BASE_URL || 'http://35.200.229.112';
+    const raw = process.env.UNIVERSITY_BASE_URL;
+    if (!raw) throw new Error('Configure UNIVERSITY_BASE_URL with an HTTPS university endpoint.');
+    const url = new URL(raw);
+    const localDevelopment = process.env.NODE_ENV !== 'production' && !process.env.VERCEL && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    if ((url.protocol !== 'https:' && !(localDevelopment && url.protocol === 'http:')) || url.username || url.password || url.search || url.hash || url.pathname !== '/') {
+      throw new Error('University connection requires HTTPS. Credentials were not sent.');
+    }
+    return url.origin;
   },
   get username() {
     const val = process.env.UNIVERSITY_USERNAME;

@@ -8,7 +8,8 @@ export const preferredRegion = 'bom1';
 export async function GET(request: NextRequest) {
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id') || undefined;
+    const userId = session?.userId;
+    if (!userId) return NextResponse.json({error: 'Unauthorized'}, {status: 401});
     const data = await universityRequest(UNIVERSITY_ENDPOINTS.courses, { userId });
     return NextResponse.json(data);
   } catch (error: any) {

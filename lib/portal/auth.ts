@@ -1,4 +1,4 @@
-import { scrypt, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { scrypt, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv, hkdfSync } from 'node:crypto';
 import { promisify } from 'node:util';
 
 const scryptAsync = promisify(scrypt);
@@ -28,8 +28,9 @@ export async function verifyPin(pin: string, storedHash?: string): Promise<boole
 }
 
 // AES-256-GCM encryption for storing university passwords securely
-function getEncryptionKey(): Buffer {
+function getEncryptionKey(legacy = false): Buffer {
   const secret = process.env.SESSION_SECRET;
+  if (secret && (process.env.NODE_ENV === 'production' || process.env.VERCEL) && Buffer.byteLength(secret) < 32) throw new Error('SESSION_SECRET must contain at least 32 random bytes.');
   if (!secret) {
     if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
       throw new Error('SESSION_SECRET environment variable is required in production for encryption.');
@@ -40,6 +41,8 @@ function getEncryptionKey(): Buffer {
     Buffer.from('lms-dev-only-encryption-key-32b!', 'utf-8').copy(devKey, 0, 0, 32);
     return devKey;
   }
+  if (!legacy) return Buffer.from(hkdfSync('sha256', secret, 'lms2', 'credential-encryption-v2', 32));
+  // Legacy decoder only; new writes use HKDF above.
   // Derive a proper 32-byte key from the secret
   const hash = Buffer.alloc(32);
   const source = Buffer.from(secret, 'utf-8');
@@ -53,15 +56,16 @@ export function encryptSecret(plaintext: string): string {
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   const encrypted = Buffer.concat([cipher.update(plaintext, 'utf-8'), cipher.final()]);
   const tag = cipher.getAuthTag();
-  return `${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
+  return `v2:${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
 }
 
 export function decryptSecret(ciphertext: string): string | null {
   try {
-    const [ivHex, tagHex, dataHex] = ciphertext.split(':');
+    const modern = ciphertext.startsWith('v2:');
+    const [ivHex, tagHex, dataHex] = (modern ? ciphertext.slice(3) : ciphertext).split(':');
     if (!ivHex || !tagHex || !dataHex) return null;
 
-    const key = getEncryptionKey();
+    const key = getEncryptionKey(!modern);
     const iv = Buffer.from(ivHex, 'hex');
     const tag = Buffer.from(tagHex, 'hex');
     const encrypted = Buffer.from(dataHex, 'hex');
@@ -71,7 +75,7 @@ export function decryptSecret(ciphertext: string): string | null {
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
     return decrypted.toString('utf-8');
   } catch (err) {
-    console.error('[Auth] Failed to decrypt secret:', err);
+    console.error('[Auth] Failed to decrypt stored credential');
     return null;
   }
 }

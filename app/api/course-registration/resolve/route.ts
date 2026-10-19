@@ -1,3 +1,5 @@
+import { readBody } from '@/lib/security/request';
+import { guardMutation } from '@/lib/security/request';
 import { debugForRequest } from '@/lib/registration/debug';
 import { NextRequest, NextResponse } from 'next/server';
 import { prepareSchema, buildPlan } from '@/lib/registration/payload';
@@ -6,10 +8,12 @@ import { resolveOfficialCourse } from '@/lib/registration/lookup';
 export const preferredRegion = 'bom1';
 export const maxDuration = 60;
 export async function POST(request: NextRequest) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   const trace = debugForRequest(request);
   try {
     const identity = await registrationIdentity(request);
-    const raw = await request.text();
+    const raw = (await readBody(request, 64_000)).toString('utf8');
     if (raw.length > 64_000) throw new Error('Plan is too large.');
     const {courses, term} = prepareSchema.parse(JSON.parse(raw));
     buildPlan(courses, term, true);

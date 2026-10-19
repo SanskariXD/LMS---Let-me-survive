@@ -66,9 +66,10 @@ async function probe(name: string, path: string, userId?: string): Promise<Probe
 export async function GET(request: NextRequest) {
   try {
     const session = await validateSession();
-    const userId = session?.userId || request.headers.get('x-user-id') || undefined;
+    const userId = session?.userId;
+    if (!userId) return NextResponse.json({error: 'Unauthorized'}, {status: 401});
     const dbUser = userId ? await getUserById(userId) : null;
-    const enrollment = dbUser?.enrollment_number || session?.enrollment || process.env.UNIVERSITY_STUDENT_ID || '';
+    const enrollment = dbUser?.enrollment_number || session?.enrollment || '';
     if (!enrollment) {
       return NextResponse.json({ error: 'Unauthorized or no enrollment found' }, { status: 401 });
     }

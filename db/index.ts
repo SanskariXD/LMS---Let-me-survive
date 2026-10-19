@@ -1,3 +1,4 @@
+import { encryptSecret } from '@/lib/portal/auth';
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema';
@@ -17,8 +18,12 @@ function getDatabaseUrl(): string {
 
 const dbUrl = getDatabaseUrl();
 const authToken = process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN;
+const parsedDbUrl = new URL(dbUrl);
+if (!['file:', 'libsql:', 'https:', 'wss:'].includes(parsedDbUrl.protocol) || parsedDbUrl.searchParams.get('tls') === '0') {
+  throw new Error('Database connections must use encrypted transport.');
+}
 
-console.info(`[DB] Using database: ${dbUrl.startsWith('libsql://') || dbUrl.startsWith('https://') ? dbUrl.split('?')[0] : dbUrl}${authToken ? ' (authenticated)' : ''}`);
+// Never log database URLs: they can contain credentials or private infrastructure names.
 
 const client = createClient({
   url: dbUrl,
@@ -33,9 +38,16 @@ let initialized = false;
 
 export async function ensureDbInitialized(): Promise<void> {
   if (initialized) return;
+  if ((process.env.NODE_ENV === 'production' || process.env.VERCEL) && dbUrl.startsWith('file:') && process.env.ALLOW_LOCAL_DATABASE !== 'true') throw new Error('Configure a persistent database before using authentication.');
 
   try {
     await client.executeMultiple(`
+      CREATE TABLE IF NOT EXISTS security_rate_limits (
+        key TEXT PRIMARY KEY, bucket INTEGER NOT NULL, attempts INTEGER NOT NULL, expires_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS revoked_sessions (
+        token_hash TEXT PRIMARY KEY, expires_at INTEGER NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE,
@@ -154,8 +166,14 @@ export async function ensureDbInitialized(): Promise<void> {
         FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE
       );
     `);
+    // Migrate legacy plaintext tokens without returning them to clients or logs.
+    const legacy = await client.execute("SELECT user_id, token FROM university_sessions WHERE token != '' AND token NOT LIKE 'v2:%'");
+    for (const row of legacy.rows) {
+      await client.execute({sql: 'UPDATE university_sessions SET token = ? WHERE user_id = ? AND token = ?', args: [encryptSecret(String(row.token)), String(row.user_id), String(row.token)]});
+    }
     initialized = true;
   } catch (error) {
-    console.error('[DB] Initialization error:', error);
+    console.error('[DB] Initialization failed');
+    throw error;
   }
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { validateSession, getRememberedUser } from '@/lib/portal/session';
-import { getUserById, getUserByEnrollment } from '@/lib/db/queries';
+import { getUserById } from '@/lib/db/queries';
 
 export async function GET() {
   try {
@@ -9,7 +9,7 @@ export async function GET() {
       // Check if user is remembered via persistent device cookie
       const remembered = await getRememberedUser();
       if (remembered?.enrollment) {
-        const user = (remembered.userId ? await getUserById(remembered.userId) : null) || await getUserByEnrollment(remembered.enrollment);
+        const user = await getUserById(remembered.userId);
         if (user) {
           return NextResponse.json({
             unlocked: false,
@@ -28,6 +28,7 @@ export async function GET() {
     }
 
     const user = await getUserById(session.userId);
+    if (!user) return NextResponse.json({unlocked: false});
 
     return NextResponse.json({
       unlocked: true,

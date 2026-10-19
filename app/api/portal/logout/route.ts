@@ -1,12 +1,17 @@
+import { guardMutation } from '@/lib/security/request';
 import { NextRequest, NextResponse } from 'next/server';
 import { clearSession, clearRememberedUser, validateSession } from '@/lib/portal/session';
+import { invalidateUniversitySession } from '@/lib/db/queries';
 import { clearUniversityToken } from '@/lib/university/token-store';
 
 export async function POST(request: NextRequest) {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
   try {
     const session = await validateSession();
     if (session?.userId) {
       clearUniversityToken(session.userId);
+      await invalidateUniversitySession(session.userId);
     }
     await clearSession();
 

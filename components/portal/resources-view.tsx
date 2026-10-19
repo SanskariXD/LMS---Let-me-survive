@@ -360,6 +360,7 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
     e.preventDefault();
     if (!shareTitle.trim() || !shareCourse.trim()) return;
 
+    if (!selectedFile) {triggerNotice('Choose a file to share.'); return;}
     setUploading(true);
     let uploadedFileUrl = '#';
 
@@ -373,11 +374,14 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
           body: formData,
         });
         const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData.url) throw new Error(uploadData.error || 'File upload failed.');
         if (uploadData.url) {
           uploadedFileUrl = uploadData.url;
         }
       } catch (err) {
-        console.error('[ResourceUpload] File upload failed:', err);
+        triggerNotice(err instanceof Error ? err.message : 'File upload failed.');
+        setUploading(false);
+        return;
       }
     }
 
@@ -411,11 +415,9 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
       isUserShared: true,
     };
 
-    const updated = [newRes, ...resources];
-    setResources(updated);
-
-    // Persist to server
-    fetch('/api/resources', {
+    // Wait for server acknowledgement before displaying a shared resource.
+    try {
+    const saved = await fetch('/api/resources', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -433,7 +435,17 @@ export function ResourcesView({ enrolledCourses = [] }: ResourceHubProps) {
         fileMimeType: selectedFile?.type,
         tags: newRes.tags,
       }),
-    }).catch(() => {});
+    });
+    const savedBody = await saved.json();
+    if (!saved.ok || !savedBody.resource?.id) throw new Error(savedBody.error || 'Could not share the resource.');
+    newRes.id = savedBody.resource.id;
+    } catch (error) {
+      triggerNotice(error instanceof Error ? error.message : 'Could not share the resource.');
+      setUploading(false);
+      return;
+    }
+    const updated = [newRes, ...resources];
+    setResources(updated);
 
     try {
       const userOnly = updated.filter((r) => r.isUserShared);

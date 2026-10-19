@@ -9,7 +9,8 @@ export const preferredRegion = 'bom1';
 
 export async function GET(request: NextRequest) {
   const session = await validateSession();
-  const userId = session?.userId || request.headers.get('x-user-id') || undefined;
+  const userId = session?.userId;
+    if (!userId) return NextResponse.json({error: 'Unauthorized'}, {status: 401});
 
   const { searchParams } = request.nextUrl;
   const courseCode = searchParams.get('course_code');
