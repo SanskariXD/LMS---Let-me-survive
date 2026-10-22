@@ -47,3 +47,9 @@ The critical Next.js advisory concerned attacker-controlled SVG in Node `next/og
 10. **Live verification:** the audit does not establish whether deployed environment values, platform permissions, storage ACLs or university-side authorization are safe. Push/deployment success and the code tests do not substitute for those checks.
 
 CI repeats tests, type-checking, runtime dependency audit and the production build without production credentials.
+
+## 22 October 2026 — university connection compatibility fix
+
+Production logs confirmed the HTTPS-only change blocked all university requests because `UNIVERSITY_BASE_URL` was absent. The institution still uses `http://35.200.229.112`. Configure `UNIVERSITY_BASE_URL=http://35.200.229.112` and `UNIVERSITY_ALLOW_LEGACY_HTTP=true` for production. This explicit exception permits only that exact origin (default port, no credentials, path, query or fragment). Other remote HTTP targets remain rejected, and redirects remain disabled.
+
+This supersedes the HTTPS-only deployment requirement above for this institution. The university hop carries credentials and tokens without transport encryption; the exception restores compatibility, not encrypted transport. Remove the opt-in and switch to a verified HTTPS endpoint when the institution provides one. Session encryption, account isolation, rate limits and other security fixes remain enabled.
