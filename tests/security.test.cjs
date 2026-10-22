@@ -205,6 +205,18 @@ test('upstream configuration refuses remote HTTP, embedded credentials and URL s
   assert.equal(config.universityConfig.baseUrl,'https://university.test');
 });
 
+test('legacy HTTP requires opt-in and remains restricted to the exact university origin', () => {
+  const configFor = (url, enabled) => load('lib/university/config.ts', {}, {}, {
+    NODE_ENV: 'production', VERCEL: '1', UNIVERSITY_BASE_URL: url,
+    UNIVERSITY_ALLOW_LEGACY_HTTP: enabled,
+  }).universityConfig;
+  assert.throws(() => configFor('http://35.200.229.112', undefined).baseUrl);
+  assert.equal(configFor('http://35.200.229.112/', 'true').baseUrl, 'http://35.200.229.112');
+  for (const url of ['http://other.test', 'http://35.200.229.112:8080', 'http://35.200.229.112.evil.test', 'http://user:pass@35.200.229.112', 'http://35.200.229.112/path', 'http://35.200.229.112/?token=x', 'http://35.200.229.112/#fragment']) {
+    assert.throws(() => configFor(url, 'true').baseUrl, url);
+  }
+});
+
 test('upstream client never falls back to an operator account or follows redirects', async () => {
   let fetched=false, options;
   const client = load('lib/university/client.ts', {
