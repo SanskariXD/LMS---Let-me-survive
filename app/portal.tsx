@@ -51,6 +51,7 @@ import {
   formatCacheTimestamp,
   isUniversityExpectedDowntime,
 } from '@/lib/offline-storage';
+import { request, pauseUniversitySync, resumeUniversitySync, universitySyncPaused } from '@/lib/university/browser-request';
 import { translations, type Language } from '@/lib/i18n';
 
 import { Button } from '@/components/ui/button';
@@ -186,22 +187,6 @@ const COURSE_COLORS = [
   { bg: '#F0FDFA', border: '#CCFBF1', text: '#0F766E', badge: '#0D9488' }, // Teal
 ];
 
-async function request(path: string, body?: object) {
-  const method = body ? 'POST' : 'GET', url = '/api/university/' + path;
-  const res = await fetch(url, {
-    method,
-    credentials: 'same-origin',
-    cache: 'no-store',
-    headers: { ...(body ? { 'Content-Type': 'application/json' } : {}) },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-  let data: any;
-  try { data = await res.json(); } catch { data = { error: 'Invalid response format.' }; }
-  if (!res.ok) {
-    throw Object.assign(new Error(data.error || 'Request failed.'), { status: res.status, code: data.code });
-  }
-  return data;
-}
 
 function PortalNavMenu({
   items,
@@ -400,24 +385,25 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     if (!snapshot) return null;
     return {
       ...snapshot,
-      attendanceItems: snapshot.attendanceSemester === semester ? snapshot.attendanceItems : undefined,
+      timestamp: snapshot.attendanceBySemester?.[semester]?.fetchedAt || snapshot.timestamp,
+      attendanceItems: snapshot.attendanceBySemester?.[semester]?.courses ?? (snapshot.attendanceSemester === semester ? snapshot.attendanceItems : undefined),
       marksData: snapshot.marksData ? {
         ...snapshot.marksData,
-        courses: snapshot.marksData.coursesSemester === (activeMarksSemester || '2026-27|FALL') ? snapshot.marksData.courses : undefined,
+        courses: snapshot.marksData.coursesBySemester?.[activeMarksSemester || '2026-27|FALL'] ?? (snapshot.marksData.coursesSemester === (activeMarksSemester || '2026-27|FALL') ? snapshot.marksData.courses : undefined),
       } : undefined,
     };
   }
 
   const serial = useRef(0);
+  const displayedAttendanceTerm = useRef('');
 
   async function loadMarksSemesters() {
-    const studentId = session?.user?.enrollment || 'student';
+    const studentId = session?.user?.enrollment || '';
     try {
       setMarksLoading(true);
       setMarksError('');
-      const res = await fetch('/api/university/marks/semesters', { credentials: 'same-origin' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load semesters');
+      const data = await request('marks/semesters');
+      if (!Array.isArray(data.semesters) || !data.semesters.length) throw new Error('Semesters unavailable');
       const sems: Array<{ slot_year: string; semester_type: string }> = data.semesters || [];
       setMarksSemesters(sems);
       saveUniversitySnapshot(studentId, { marksData: { semesters: sems } });
@@ -447,23 +433,23 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   }
 
   async function loadMarksTimetable(slotYear: string, semesterType: string) {
-    const studentId = session?.user?.enrollment || 'student';
+    const studentId = session?.user?.enrollment || '';
     try {
       setMarksLoading(true);
       setMarksError('');
-      const res = await fetch(
-        `/api/university/marks/timetable?slot_year=${encodeURIComponent(slotYear)}&semester_type=${encodeURIComponent(semesterType)}`,
-        { credentials: 'same-origin' }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load courses');
+      const data = await request(`marks/timetable?slot_year=${encodeURIComponent(slotYear)}&semester_type=${encodeURIComponent(semesterType)}`);
+      if (!Array.isArray(data.allRegistrations) && !Array.isArray(data.registrations)) throw new Error('Courses unavailable');
       const list = data.allRegistrations?.length ? data.allRegistrations : (data.registrations || []);
+      const prior = readUniversitySnapshot(studentId)?.marksData;
+      const priorCourses = prior?.coursesBySemester?.[`${slotYear}|${semesterType}`] ?? (prior?.coursesSemester === `${slotYear}|${semesterType}` ? prior.courses : undefined);
+      if (!list.length && priorCourses?.length) { pauseUniversitySync(); throw new Error('Empty university response'); }
       setMarksCourses(list);
       saveUniversitySnapshot(studentId, { marksData: { courses: list, coursesSemester: `${slotYear}|${semesterType}` } });
     } catch (err: any) {
-      const snap = getUniversitySnapshot(studentId);
-      if (snap?.marksData?.courses && snap.marksData.coursesSemester === `${slotYear}|${semesterType}`) {
-        setMarksCourses(snap.marksData.courses);
+      const snap = readUniversitySnapshot(studentId);
+      const savedCourses = snap?.marksData?.coursesBySemester?.[`${slotYear}|${semesterType}`] ?? (snap?.marksData?.coursesSemester === `${slotYear}|${semesterType}` ? snap.marksData.courses : undefined);
+      if (snap && savedCourses) {
+        setMarksCourses(savedCourses);
         setIsUsingSavedData(true);
         setSavedDataTimestamp(snap.timestamp);
       } else {
@@ -479,19 +465,15 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     setMarksDetailsData(null);
     setMarksDetailsLoading(true);
     setMarksDetailsError('');
-    const courseKey = `${course.course_code}_${course.slot_name}`;
-    const studentId = session?.user?.enrollment || 'student';
+    const courseKey = `${activeMarksSemester}|${course.course_code}|${course.slot_name}`;
+    const studentId = session?.user?.enrollment || '';
 
     try {
       const [slotYear, semType] = (activeMarksSemester || '').split('|');
       const y = slotYear || course.slot_year;
       const s = semType || course.semester_type;
-      const res = await fetch(
-        `/api/university/marks/details?slot_year=${encodeURIComponent(y)}&semester_type=${encodeURIComponent(s)}&course_code=${encodeURIComponent(course.course_code)}&slot_name=${encodeURIComponent(course.slot_name)}`,
-        { credentials: 'same-origin' }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch marks report');
+      const data = await request(`marks/details?slot_year=${encodeURIComponent(y)}&semester_type=${encodeURIComponent(s)}&course_code=${encodeURIComponent(course.course_code)}&slot_name=${encodeURIComponent(course.slot_name)}`);
+      if (!data.marks && !data.consolidated) throw new Error('Marks unavailable');
       setMarksDetailsData(data);
       saveUniversitySnapshot(studentId, {
         marksData: {
@@ -515,13 +497,19 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   }
 
   async function loadAcademicsData() {
-    const studentId = session?.user?.enrollment || 'student';
+    const studentId = session?.user?.enrollment || '';
     try {
       setAcademicsLoading(true);
       setAcademicsError('');
-      const res = await fetch('/api/university/academics/history', { credentials: 'same-origin' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load academics audit');
+      const data = await request('academics/history');
+      if (!data.audit || !Array.isArray(data.semesterHistory) || !data.semesterHistory.length) throw new Error('Curriculum unavailable');
+
+      const savedAcademics = readUniversitySnapshot(studentId)?.academicsData;
+      const hadCourses = savedAcademics?.semesterHistory?.some((sem: any) => sem.courses?.length);
+      if (hadCourses && !data.semesterHistory.some((sem: any) => sem.courses?.length)) {
+        pauseUniversitySync();
+        throw new Error('Empty academic history; keeping saved curriculum.');
+      }
 
       // Inject Fall 2024-25 and Winter 2024-25 into semesters if not present
       const existingSems = data.semesters || [];
@@ -703,7 +691,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
   }, [isIdleLocked, isReauthModalOpen]);
 
   function handleSessionExpired() {
-    const studentId = session?.user?.enrollment || 'student';
+    const studentId = session?.user?.enrollment || '';
     const snap = getUniversitySnapshot(studentId);
     if (snap?.attendanceItems && snap.attendanceItems.length > 0) {
       setAttendanceItems(snap.attendanceItems);
@@ -780,23 +768,36 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     }
   }
 
-  async function fetchAttendance(semKey: string) {
+  async function fetchAttendance(semKey: string, enrollment?: string) {
     if (!semKey) return;
     const ticket = ++serial.current;
     setLoading(true);
-    setAttendanceItems(null);
     setError('');
     const [year, type] = semKey.split('|');
-    const studentId = session?.user?.enrollment || 'student';
+    const studentId = enrollment || session?.user?.enrollment || '';
+    const saved = getUniversitySnapshot(studentId, semKey);
+    const sameTerm = displayedAttendanceTerm.current === semKey;
+    setAttendanceItems((previous) => sameTerm ? (previous ?? saved?.attendanceItems ?? null) : (saved?.attendanceItems ?? null));
+    displayedAttendanceTerm.current = semKey;
 
     try {
       const data = await request('attendance?' + new URLSearchParams({ slot_year: year, semester_type: type }));
       if (ticket !== serial.current) return;
+      if (!Array.isArray(data.courses)) throw new Error('Attendance unavailable');
+      if (data.isOffline || (!data.courses.length && saved?.attendanceItems?.length)) {
+        pauseUniversitySync();
+        setAttendanceItems((previous) => data.courses.length ? data.courses : (saved?.attendanceItems ?? (sameTerm ? previous : null)));
+        setIsUsingSavedData(true);
+        setSavedDataTimestamp(data.fetchedAt || saved?.timestamp || null);
+        return;
+      }
       setAttendanceItems(data.courses);
       setIsUsingSavedData(false);
+      setSavedDataTimestamp(data.fetchedAt);
       saveUniversitySnapshot(studentId, { attendanceItems: data.courses, attendanceSemester: semKey });
     } catch (e: any) {
       if (ticket !== serial.current) return;
+      setIsUsingSavedData(true);
       if (e.status === 401) {
         handleSessionExpired();
         return;
@@ -825,7 +826,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     const initialSemKey = active ? key(active) : '';
     if (initialSemKey) {
       setActiveSemester(initialSemKey);
-      void fetchAttendance(initialSemKey);
+      void fetchAttendance(initialSemKey, data.user.enrollment || undefined);
     }
   }
 
@@ -836,7 +837,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       const u = JSON.parse(localStorage.getItem('slotwise_device_user') || '{}');
       if (u?.enrollment) activeEnrollment = u.enrollment;
     } catch {}
-    const studentId = activeEnrollment || session?.user?.enrollment || 'student';
+    const studentId = activeEnrollment || session?.user?.enrollment || '';
 
     // 1. Immediately restore cached snapshot if available so there is zero initial blank screen
     const snapshot = getUniversitySnapshot(studentId);
@@ -856,6 +857,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
       }
       if (snapshot.attendanceItems && snapshot.attendanceItems.length > 0) {
         setAttendanceItems(snapshot.attendanceItems);
+        displayedAttendanceTerm.current = active ? key(active) : '2026-27|FALL';
       }
       setIsUsingSavedData(true);
       setSavedDataTimestamp(snapshot.timestamp);
@@ -878,6 +880,11 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
           return;
         }
         applySession(data);
+        if (data.isOfflineCache) {
+          setIsUsingSavedData(true);
+          setSavedDataTimestamp(data.cachedAt || snapshot?.timestamp || null);
+          return;
+        }
         setIsUsingSavedData(false);
         saveUniversitySnapshot(studentId, {
           user: data.user,
@@ -918,38 +925,26 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     };
   }, []);
 
-  // Silent background token and data refresh (keeps session active without disturbing user)
+  // Never poll a known offline university. Explicit Refresh can retry later.
   useEffect(() => {
-    if (!activeSemester || isIdleLocked || isReauthModalOpen) return;
+    if (!activeSemester || isIdleLocked || isReauthModalOpen || isUsingSavedData || universitySyncPaused()) return;
     const interval = setInterval(() => {
-      const [year, type] = activeSemester.split('|');
-      request('attendance?' + new URLSearchParams({ slot_year: year, semester_type: type }))
-        .then((data) => {
-          if (data?.courses && data.courses.length > 0) {
-            setAttendanceItems(data.courses);
-            setIsUsingSavedData(false);
-            saveUniversitySnapshot(session?.user?.enrollment || 'student', { attendanceItems: data.courses, attendanceSemester: activeSemester });
-          }
-        })
-        .catch((e: any) => {
-          if (e.status === 401) {
-            handleSessionExpired();
-          }
-        });
+      if (!universitySyncPaused() && document.visibilityState === 'visible') void fetchAttendance(activeSemester);
     }, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [activeSemester, session, isIdleLocked, isReauthModalOpen]);
+  }, [activeSemester, isIdleLocked, isReauthModalOpen, isUsingSavedData]);
 
   async function refresh() {
-    const studentId = session?.user?.enrollment || 'student';
+    resumeUniversitySync();
+    const studentId = session?.user?.enrollment || '';
     setLoading(true);
     setError('');
     try {
       const bootData = await request('bootstrap');
-      if (!bootData?.user?.name || !bootData?.semesters || bootData.semesters.length === 0) {
+      if (bootData.isOfflineCache || !bootData?.user?.name || !bootData?.semesters || bootData.semesters.length === 0) {
         throw new Error('University server offline');
       }
-      applySession(bootData);
+      setSession(bootData);
       setIsUsingSavedData(false);
       saveUniversitySnapshot(studentId, {
         user: bootData.user,
@@ -994,7 +989,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
     setReportData(null);
     setReportError('');
     setReportLoading(true);
-    const studentId = session?.user?.enrollment || 'student';
+    const studentId = session?.user?.enrollment || '';
 
     try {
       const semYear = item.slot_year || activeSemester.split('|')[0];
@@ -1010,14 +1005,15 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
 
       const data = await request(`attendance/report?${params.toString()}`);
       setReportData(data);
+      if (data.isOffline) return;
       saveUniversitySnapshot(studentId, {
         attendanceReports: {
-          [item.course_code]: data,
+          [`${activeSemester}|${item.course_code}|${item.slot_name}`]: data,
         },
       });
     } catch (err: any) {
       const snap = getUniversitySnapshot(studentId);
-      const cachedReport = snap?.attendanceReports?.[item.course_code];
+      const cachedReport = snap?.attendanceReports?.[`${activeSemester}|${item.course_code}|${item.slot_name}`];
       if (cachedReport) {
         setReportData({ ...cachedReport, isOffline: true });
         setReportError('');
@@ -1629,7 +1625,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                 </div>
               </div>
 
-              {loading ? (
+              {loading && !attendanceItems ? (
                 <div className="py-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
                   <RefreshCw className="spinning" size={16} /> Syncing university attendance...
                 </div>
@@ -1694,7 +1690,7 @@ export default function Portal({ onLock, onSwitchUser }: { onLock: () => void; o
                 </div>
               ) : (
                 <div className="py-8 text-center text-xs text-slate-400">
-                  No attendance records found for this semester.
+                  {error || (isUsingSavedData ? 'University offline. No saved attendance is available for this semester yet.' : 'No attendance records found for this semester.')}
                 </div>
               )}
             </div>

@@ -1,0 +1,11 @@
+# Offline university data
+
+Attendance summaries and date-wise reports are persisted in the shared database per authenticated user, academic year, semester and (for reports) course/slot. Saves complete before the handler returns. Atomic JSON updates keep concurrent reports/semesters from erasing each other. Legacy attendance is reused only when its own fields identify the requested semester.
+
+Marks, course registrations and degree/curriculum history are retained in enrollment-scoped browser snapshots. Multiple marks semesters are retained separately; course detail keys include the semester. Ordinary PIN unlock/lock preserves these snapshots; forget-device deletes them. Unscoped private task/preference caches are still cleared on account changes. Browser caches remain readable to someone with local device access; they contain no authentication secrets.
+
+During expected downtime (17:00–09:10 IST), bootstrap and attendance use authenticated cache-only endpoints and do not contact the university. Other data loads use browser snapshots. A detected outage pauses further automatic requests; five-minute attendance polling stops while saved data is displayed. Unexpected outages have a five-minute browser retry cooldown; explicit Refresh clears that cooldown, while the expected overnight downtime still uses saved data.
+
+A failed, malformed or offline-empty attendance response cannot replace a populated snapshot. If no matching attendance cache exists, the API returns an unavailable response, rather than a successful empty list. UI refresh leaves existing records visible and retains the original saved timestamp. Partial academic-history/marks failures cannot publish a complete-looking fresh snapshot.
+
+Validation: 53 tests pass, including durable database updates, concurrent attendance saves, term/user isolation, empty/offline responses, actual attendance loader transitions, late responses, browser storage reloads, retry suppression and lock/unlock retention. Production build and TypeScript checks pass. Full browser automation could not run in this execution environment because Chromium socket creation is restricted; the UI loader was exercised directly with controlled asynchronous responses instead.

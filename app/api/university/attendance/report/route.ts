@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { universityRequest } from '@/lib/university/client';
 import { UNIVERSITY_ENDPOINTS } from '@/lib/university/endpoints';
 import { validateSession } from '@/lib/portal/session';
-import { getUniversityCachedData, saveUniversityCachedData } from '@/lib/db/queries';
-import { ensureDbInitialized } from '@/db';
+import { getAttendanceCacheEntry, saveAttendanceCacheEntry } from '@/lib/db/queries';
 
 export const preferredRegion = 'bom1';
 
@@ -33,54 +32,21 @@ export async function GET(request: NextRequest) {
   );
 
   try {
+    if (searchParams.get('cache_only') === '1') throw new Error('Cached data requested');
     const data = await universityRequest<any>(endpointPath, { userId });
 
-    // Cache the report in database for offline viewing
-    if (userId && data) {
-      ensureDbInitialized().then(async () => {
-        const existing = await getUniversityCachedData(userId);
-        let attendanceObj: any = { courses: [], reports: {} };
-        if (existing?.attendance_json) {
-          try {
-            const p = JSON.parse(existing.attendance_json);
-            if (Array.isArray(p)) {
-              attendanceObj.courses = p;
-            } else if (p && typeof p === 'object') {
-              attendanceObj = p;
-              if (!attendanceObj.reports) attendanceObj.reports = {};
-            }
-          } catch {}
-        }
-        attendanceObj.reports[courseCode] = data;
-        await saveUniversityCachedData(userId, {
-          attendanceJson: JSON.stringify(attendanceObj),
-        });
-      }).catch((err) => console.warn('[AttendanceReport] Cache save failed:', err));
-    }
+    if (!data?.course_details || !Array.isArray(data.attendance_records)) throw new Error('Invalid attendance report');
+    try { await saveAttendanceCacheEntry(userId, JSON.stringify([slotYear, semesterType.toUpperCase(), courseCode, slotName || '']), {...data, fetchedAt: new Date().toISOString()}); }
+    catch (error) { console.warn('[AttendanceReport] Cache persistence failed:', error); }
 
     return NextResponse.json(data);
   } catch (error: any) {
     console.warn('[AttendanceReport] Fetch failed, checking cache fallback:', error?.message);
 
-    if (userId) {
-      try {
-        await ensureDbInitialized();
-        const cached = await getUniversityCachedData(userId);
-        if (cached?.attendance_json) {
-          const p = JSON.parse(cached.attendance_json);
-          const cachedReport = p?.reports?.[courseCode];
-          if (cachedReport) {
-            return NextResponse.json({
-              ...cachedReport,
-              isOffline: true,
-              fetchedAt: new Date(cached.updated_at).toISOString(),
-            });
-          }
-        }
-      } catch (cacheErr) {
-        console.warn('[AttendanceReport] Cache fallback failed:', cacheErr);
-      }
-    }
+    try {
+      const cachedReport = await getAttendanceCacheEntry(userId, JSON.stringify([slotYear, semesterType.toUpperCase(), courseCode, slotName || '']));
+      if (cachedReport) return NextResponse.json({...cachedReport, isOffline: true});
+    } catch {}
 
     return NextResponse.json(
       { error: error.message || 'Failed to fetch attendance report' },

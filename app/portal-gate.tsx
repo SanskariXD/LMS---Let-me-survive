@@ -35,11 +35,11 @@ interface DeviceUser {
   program?: string;
 }
 
-function clearPrivateBrowserCache() {
+function clearPrivateBrowserCache(forgetSnapshots = false) {
   try {
     const privateKeys = new Set(['slotwise_portal_tasks', 'slotwise_manual_courses', 'slotwise_user_preferences', 'slotwise_saved_resource_ids', 'slotwise_helpful_resource_ids']);
     for (const key of Object.keys(localStorage)) {
-      if (privateKeys.has(key) || key.startsWith('slotwise_univ_cache_') || key.startsWith('slotwise_univ_synced_at_')) localStorage.removeItem(key);
+      if (privateKeys.has(key) || (forgetSnapshots && (key.startsWith('slotwise_univ_cache_') || key.startsWith('slotwise_univ_synced_at_')))) localStorage.removeItem(key);
     }
   } catch { /* Storage can be disabled by the browser. */ }
 }
@@ -167,7 +167,6 @@ export default function PortalGate() {
 
       clearPrivateBrowserCache();
       setPin('');
-      clearPrivateBrowserCache();
       setUnlocked(true);
       if (data.user) {
         setCurrentUser(data.user);
@@ -256,7 +255,7 @@ export default function PortalGate() {
     }
     setDeviceUser(null);
     setCurrentUser(null);
-    clearPrivateBrowserCache();
+    clearPrivateBrowserCache(true);
     setUnlocked(false);
     setPin('');
     setPinEnrollment('');

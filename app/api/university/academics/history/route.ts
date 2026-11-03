@@ -3,7 +3,7 @@ import { universityRequest } from '@/lib/university/client';
 import { UNIVERSITY_ENDPOINTS } from '@/lib/university/endpoints';
 import { auditDegreeProgress, getRecommendedCourses } from '@/lib/university/curriculum';
 import { validateSession } from '@/lib/portal/session';
-import { getUserManualCourses, getUniversityCachedData, saveUniversityCachedData } from '@/lib/db/queries';
+import { getUserManualCourses } from '@/lib/db/queries';
 
 export const preferredRegion = 'bom1';
 
@@ -19,30 +19,22 @@ export async function GET(request: NextRequest) {
       { userId },
     );
 
-    if (!semesters || !Array.isArray(semesters)) {
-      return NextResponse.json({ error: 'Could not fetch semesters' }, { status: 502 });
-    }
+    if (!Array.isArray(semesters) || !semesters.length) throw new Error('Could not fetch semesters');
 
     // 2. Fetch registrations for all semesters concurrently
     const semesterTimetablePromises = semesters.map(async (sem) => {
       try {
         const endpoint = UNIVERSITY_ENDPOINTS.myTimetable(sem.slot_year, sem.semester_type);
         const data = await universityRequest<any>(endpoint, { userId });
-        const list = data.allRegistrations || data.registrations || [];
+        const list = data.allRegistrations || data.registrations;
+        if (!Array.isArray(list)) throw new Error('Invalid semester registrations');
         return {
           semesterKey: `${sem.slot_year}|${sem.semester_type}`,
           slot_year: sem.slot_year,
           semester_type: sem.semester_type,
           courses: list,
         };
-      } catch {
-        return {
-          semesterKey: `${sem.slot_year}|${sem.semester_type}`,
-          slot_year: sem.slot_year,
-          semester_type: sem.semester_type,
-          courses: [],
-        };
-      }
+      } catch { throw new Error('Incomplete academic history; keeping saved curriculum.'); }
     });
 
     const semesterResults = await Promise.all(semesterTimetablePromises);
@@ -94,29 +86,8 @@ export async function GET(request: NextRequest) {
       fetchedAt: new Date().toISOString(),
     };
 
-    if (userId) {
-      saveUniversityCachedData(userId, {
-        academicsJson: JSON.stringify(responsePayload),
-      }).catch(() => {});
-    }
-
     return NextResponse.json(responsePayload);
   } catch (error: any) {
-    // Database cache fallback
-    if (userId) {
-      const cached = await getUniversityCachedData(userId);
-      if (cached?.academics_json) {
-        try {
-          const payload = JSON.parse(cached.academics_json);
-          return NextResponse.json({
-            ...payload,
-            isOffline: true,
-            fetchedAt: new Date(cached.updated_at).toISOString(),
-          });
-        } catch {}
-      }
-    }
-
     return NextResponse.json(
       { error: error.message || 'Failed to generate academic degree audit', isOffline: true },
       { status: 502 },

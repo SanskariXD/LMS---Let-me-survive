@@ -15,6 +15,7 @@ export interface UniversitySnapshot {
   };
   semesters?: Array<{ slot_year: string; semester_type: string }>;
   currentSemester?: { slot_year: string; semester_type: string } | null;
+  attendanceBySemester?: Record<string, {courses: any[]; fetchedAt: string}>;
   attendanceItems?: any[];
   attendanceSemester?: string;
   attendanceReports?: Record<string, any>;
@@ -22,6 +23,7 @@ export interface UniversitySnapshot {
   academicsData?: any;
   marksData?: {
     semesters?: Array<{ slot_year: string; semester_type: string }>;
+    coursesBySemester?: Record<string, any[]>;
     courses?: any[];
     coursesSemester?: string;
     courseDetails?: Record<string, { marks: any; consolidated: any }>;
@@ -66,6 +68,10 @@ export function saveUniversitySnapshot(studentId: string, data: Partial<Universi
       ...existing,
       ...data,
       studentId,
+      attendanceBySemester: {
+        ...existing.attendanceBySemester, ...data.attendanceBySemester,
+        ...(data.attendanceSemester && data.attendanceItems ? {[data.attendanceSemester]: {courses: data.attendanceItems, fetchedAt: data.timestamp || new Date().toISOString()}} : {}),
+      },
       attendanceReports: {
         ...(existing.attendanceReports || {}),
         ...(data.attendanceReports || {}),
@@ -73,6 +79,10 @@ export function saveUniversitySnapshot(studentId: string, data: Partial<Universi
       marksData: {
         ...(existing.marksData || {}),
         ...(data.marksData || {}),
+        coursesBySemester: {
+          ...existing.marksData?.coursesBySemester, ...data.marksData?.coursesBySemester,
+          ...(data.marksData?.coursesSemester && data.marksData.courses ? {[data.marksData.coursesSemester]: data.marksData.courses} : {}),
+        },
         courseDetails: {
           ...(existing.marksData?.courseDetails || {}),
           ...(data.marksData?.courseDetails || {}),

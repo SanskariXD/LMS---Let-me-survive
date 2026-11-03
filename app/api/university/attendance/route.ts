@@ -3,84 +3,32 @@ import { universityRequest } from '@/lib/university/client';
 import { UNIVERSITY_ENDPOINTS } from '@/lib/university/endpoints';
 import { normalizeAttendance } from '@/lib/university/normalize';
 import { validateSession } from '@/lib/portal/session';
-import { getUniversityCachedData, saveUniversityCachedData } from '@/lib/db/queries';
-import { ensureDbInitialized } from '@/db';
+import { getAttendanceCacheEntry, saveAttendanceCacheEntry } from '@/lib/db/queries';
 
 export const preferredRegion = 'bom1';
 
 export async function GET(request: NextRequest) {
   const session = await validateSession();
-  const userId = session?.userId;
-    if (!userId) return NextResponse.json({error: 'Unauthorized'}, {status: 401});
-
+  if (!session?.userId) return NextResponse.json({error: 'Unauthorized'}, {status: 401});
+  const userId = session.userId;
+  const params = request.nextUrl.searchParams;
+  const year = params.get('slot_year'), type = params.get('semester_type');
+  if (!year || !type) return NextResponse.json({error: 'slot_year and semester_type are required'}, {status: 400});
+  const entryKey = JSON.stringify([year, type.toUpperCase()]);
+  let cached: any = null;
+  try { cached = await getAttendanceCacheEntry(userId, entryKey); } catch {}
   try {
-    const { searchParams } = request.nextUrl;
-    const slotYear = searchParams.get('slot_year');
-    const semesterType = searchParams.get('semester_type');
-
-    if (!slotYear || !semesterType) {
-      return NextResponse.json(
-        { error: 'slot_year and semester_type are required' },
-        { status: 400 },
-      );
-    }
-
-    const params = new URLSearchParams({ slot_year: slotYear, semester_type: semesterType });
-    const data = await universityRequest<any>(
-      `${UNIVERSITY_ENDPOINTS.attendance}?${params}`,
-      { userId },
-    );
-
+    if (params.get('cache_only') === '1') throw new Error('Cached data requested');
+    const data = await universityRequest<any>(`${UNIVERSITY_ENDPOINTS.attendance}?${new URLSearchParams({slot_year: year, semester_type: type})}`, {userId});
     const courses = normalizeAttendance(data);
-
-    if (userId && courses.length > 0) {
-      await ensureDbInitialized();
-      getUniversityCachedData(userId).then((existing) => {
-        let reports = {};
-        if (existing?.attendance_json) {
-          try {
-            const p = JSON.parse(existing.attendance_json);
-            if (!Array.isArray(p) && p?.reports) reports = p.reports;
-          } catch {}
-        }
-        return saveUniversityCachedData(userId, {
-          attendanceJson: JSON.stringify({ courses, reports }),
-        });
-      }).catch((err) => console.warn('[Attendance] Cache save failed:', err));
-    }
-
-    return NextResponse.json({
-      courses,
-      fetchedAt: new Date().toISOString(),
-    });
-  } catch (error: any) {
-    console.error('[Attendance] Fetch failed, attempting cache fallback:', error?.message);
-
-    // Attempt database cache fallback
-    if (userId) {
-      try {
-        await ensureDbInitialized();
-        const cached = await getUniversityCachedData(userId);
-        if (cached?.attendance_json) {
-          const parsed = JSON.parse(cached.attendance_json);
-          const courses = Array.isArray(parsed) ? parsed : (parsed.courses || []);
-          return NextResponse.json({
-            courses,
-            isOffline: true,
-            fetchedAt: new Date(cached.updated_at).toISOString(),
-          });
-        }
-      } catch (cacheErr) {
-        console.error('[Attendance] Cache fallback also failed:', cacheErr);
-      }
-    }
-
-    // Return empty result with offline flag instead of 502
-    return NextResponse.json({
-      courses: [],
-      isOffline: true,
-      error: error?.message || 'University service temporarily unavailable',
-      fetchedAt: new Date().toISOString(),
-    });
+    // An empty array during an outage must not erase a known populated term.
+    if (!courses.length && cached?.courses?.length) throw new Error('University returned empty attendance');
+    const payload = {courses, fetchedAt: new Date().toISOString()};
+    try { await saveAttendanceCacheEntry(userId, entryKey, payload); }
+    catch (error) { console.warn('[Attendance] Cache persistence failed:', error); }
+    return NextResponse.json(payload);
+  } catch {
+    if (cached) return NextResponse.json({...cached, isOffline: true});
+    return NextResponse.json({isOffline: true, error: 'Attendance is unavailable and no saved records exist for this semester.'}, {status: 503});
   }
 }

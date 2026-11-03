@@ -1,6 +1,6 @@
 import { encryptSecret, decryptSecret } from '@/lib/portal/auth';
 import { safeExternalUrl, safeResourceUrl } from '@/lib/security/urls';
-import { eq, and, or, desc } from 'drizzle-orm';
+import { eq, and, or, desc, sql } from 'drizzle-orm';
 import { db, ensureDbInitialized } from '@/db';
 import * as schema from '@/db/schema';
 import { randomUUID } from 'node:crypto';
@@ -157,25 +157,51 @@ export async function saveUniversityCachedData(userId: string, data: {
   semestersJson?: string;
 }) {
   await ensureDbInitialized();
-  const existing = await getUniversityCachedData(userId);
-  const now = Date.now();
+  const fields = {
+    ...(data.attendanceJson !== undefined ? {attendance_json: data.attendanceJson} : {}),
+    ...(data.timetableJson !== undefined ? {timetable_json: data.timetableJson} : {}),
+    ...(data.marksJson !== undefined ? {marks_json: data.marksJson} : {}),
+    ...(data.academicsJson !== undefined ? {academics_json: data.academicsJson} : {}),
+    ...(data.semestersJson !== undefined ? {semesters_json: data.semestersJson} : {}),
+    updated_at: Date.now(),
+  };
+  await db.insert(schema.universityCachedData).values({user_id: userId, ...fields})
+    .onConflictDoUpdate({target: schema.universityCachedData.user_id, set: fields});
+}
 
-  if (existing) {
-    await db.update(schema.universityCachedData).set({
-      ...data,
-      updated_at: now,
-    }).where(eq(schema.universityCachedData.user_id, userId));
-  } else {
-    await db.insert(schema.universityCachedData).values({
-      user_id: userId,
-      attendance_json: data.attendanceJson || null,
-      timetable_json: data.timetableJson || null,
-      marks_json: data.marksJson || null,
-      academics_json: data.academicsJson || null,
-      semesters_json: data.semestersJson || null,
-      updated_at: now,
-    });
+// Atomic nested updates prevent concurrent term/report saves from erasing each other.
+export async function saveAttendanceCacheEntry(userId: string, entryKey: string, value: unknown) {
+  await ensureDbInitialized();
+  const storageKey = Buffer.from(entryKey).toString('hex');
+  const path = '$.entries.' + storageKey;
+  const encoded = JSON.stringify(value);
+  const column = schema.universityCachedData.attendance_json;
+  await db.insert(schema.universityCachedData).values({
+    user_id: userId, attendance_json: JSON.stringify({entries: {[storageKey]: value}}), updated_at: Date.now(),
+  }).onConflictDoUpdate({target: schema.universityCachedData.user_id, set: {
+    attendance_json: sql`json_set(CASE WHEN json_valid(${column}) AND json_type(${column}) = 'object' THEN ${column} ELSE '{}' END, ${path}, json(${encoded}))`,
+    updated_at: Date.now(),
+  }});
+}
+
+export async function getAttendanceCacheEntry(userId: string, entryKey: string) {
+  const cached = await getUniversityCachedData(userId);
+  try {
+    const parsed = JSON.parse(cached?.attendance_json || '{}');
+    const storageKey = Buffer.from(entryKey).toString('hex');
+    if (parsed.entries?.[storageKey]) return parsed.entries[storageKey];
+    // Migrate only legacy rows whose own data identifies the requested term.
+    const [year, type, course, slot] = JSON.parse(entryKey);
+    const courses = Array.isArray(parsed) ? parsed : parsed.courses;
+    if (!course && Array.isArray(courses) && courses.length && courses.every((c: any) => c.slot_year === year && c.semester_type?.toUpperCase() === type)) {
+      return {courses, fetchedAt: new Date(cached!.updated_at).toISOString()};
+    }
+    const report = parsed.reports?.[course];
+    const details = report?.course_details;
+    if (course && details?.slot_year === year && details?.semester_type?.toUpperCase() === type && (details.slot_name || '') === slot) return {...report, fetchedAt: new Date(cached!.updated_at).toISOString()};
+    return null;
   }
+  catch { return null; }
 }
 
 // -------------------------------------------------------------

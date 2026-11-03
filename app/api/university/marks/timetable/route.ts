@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { universityRequest } from '@/lib/university/client';
 import { UNIVERSITY_ENDPOINTS } from '@/lib/university/endpoints';
 import { validateSession } from '@/lib/portal/session';
-import { getUniversityCachedData, saveUniversityCachedData } from '@/lib/db/queries';
 
 export const preferredRegion = 'bom1';
 
@@ -26,6 +25,7 @@ export async function GET(request: NextRequest) {
     const endpoint = UNIVERSITY_ENDPOINTS.myTimetable(slotYear, semesterType);
     const data = await universityRequest<any>(endpoint, { userId });
 
+    if (!Array.isArray(data?.registrations) && !Array.isArray(data?.allRegistrations)) throw new Error('Invalid timetable response');
     const payload = {
       student: data.student,
       semester_info: data.semester_info,
@@ -35,29 +35,8 @@ export async function GET(request: NextRequest) {
       fetchedAt: new Date().toISOString(),
     };
 
-    if (userId) {
-      saveUniversityCachedData(userId, {
-        timetableJson: JSON.stringify(payload),
-      }).catch(() => {});
-    }
-
     return NextResponse.json(payload);
   } catch (error: any) {
-    // Attempt database cache fallback
-    if (userId) {
-      const cached = await getUniversityCachedData(userId);
-      if (cached?.timetable_json) {
-        try {
-          const payload = JSON.parse(cached.timetable_json);
-          return NextResponse.json({
-            ...payload,
-            isOffline: true,
-            fetchedAt: new Date(cached.updated_at).toISOString(),
-          });
-        } catch {}
-      }
-    }
-
     return NextResponse.json(
       { error: error.message || 'Failed to fetch timetable registrations', isOffline: true },
       { status: 502 },

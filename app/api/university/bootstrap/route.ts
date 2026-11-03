@@ -74,15 +74,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized or no enrollment found' }, { status: 401 });
     }
 
+    const readProbe = request.nextUrl.searchParams.get('cache_only') === '1'
+      ? async (name: string): Promise<ProbeResult> => ({endpoint: name, received: false})
+      : probe;
     const [meProbe, semestersProbe, studentProbe, regStatusProbe, withdrawalProbe, slotsProbe, schoolsProbe, programsProbe] = await Promise.all([
-      probe('auth/me', UNIVERSITY_ENDPOINTS.me, userId),
-      probe('semesters', UNIVERSITY_ENDPOINTS.semesters, userId),
-      probe('student', UNIVERSITY_ENDPOINTS.student(enrollment), userId),
-      probe('registration-status', UNIVERSITY_ENDPOINTS.registrationStatus, userId),
-      probe('withdrawal-status', UNIVERSITY_ENDPOINTS.withdrawalStatus, userId),
-      probe('slots', UNIVERSITY_ENDPOINTS.slots, userId),
-      probe('schools', UNIVERSITY_ENDPOINTS.schools, userId),
-      probe('programs', UNIVERSITY_ENDPOINTS.programs, userId),
+      readProbe('auth/me', UNIVERSITY_ENDPOINTS.me, userId),
+      readProbe('semesters', UNIVERSITY_ENDPOINTS.semesters, userId),
+      readProbe('student', UNIVERSITY_ENDPOINTS.student(enrollment), userId),
+      readProbe('registration-status', UNIVERSITY_ENDPOINTS.registrationStatus, userId),
+      readProbe('withdrawal-status', UNIVERSITY_ENDPOINTS.withdrawalStatus, userId),
+      readProbe('slots', UNIVERSITY_ENDPOINTS.slots, userId),
+      readProbe('schools', UNIVERSITY_ENDPOINTS.schools, userId),
+      readProbe('programs', UNIVERSITY_ENDPOINTS.programs, userId),
     ]);
 
     // If live university endpoints are offline or failed, return cached/fallback data with 200 OK
